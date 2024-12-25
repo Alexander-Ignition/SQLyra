@@ -1,4 +1,4 @@
-import SQLime
+import SQLyra
 import XCTest
 
 final class DatabaseTests: XCTestCase {

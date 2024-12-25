@@ -9,26 +9,26 @@ let swiftSettings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "SQLime",
+    name: "SQLyra",
     platforms: [
         .macOS(.v12),
         .iOS(.v12),
     ],
     products: [
         .library(
-            name: "SQLime",
-            targets: ["SQLime"]
+            name: "SQLyra",
+            targets: ["SQLyra"]
         )
     ],
     targets: [
         .target(
-            name: "SQLime",
+            name: "SQLyra",
             dependencies: [],
             swiftSettings: swiftSettings
         ),
         .testTarget(
-            name: "SQLimeTests",
-            dependencies: ["SQLime"],
+            name: "SQLyraTests",
+            dependencies: ["SQLyra"],
             swiftSettings: swiftSettings
         ),
     ]

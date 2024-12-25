@@ -2,7 +2,7 @@
  # 🍋 SQLime
  */
 import Foundation
-import SQLime  // open Package.swift and select Playgrounds/Example
+import SQLyra  // open Package.swift and select Playgrounds/Example
 
 /*:
  ## Open
