@@ -1,7 +1,10 @@
 #!/usr/bin/env swift
 
-// Convert Xcode Playground to markdown
-// Usage: cat Playgrounds/Example.playground/Contents.swift | ./Scripts/markdown.swift
+/*
+ OVERVIEW: Convert Xcode Playground to markdown
+
+ USAGE: cat Playgrounds/Example.playground/Contents.swift | ./Scripts/markdown.swift
+ */
 
 enum TextBlock {
     case unknown, code, comment

@@ -46,11 +46,9 @@ try database.execute("INSERT INTO contacts (id, name) VALUES (2, 'John');")
 
  Select all contacts from database.
  */
-struct Contract: Codable {
+struct Contact: Codable {
     let id: Int
     let name: String
 }
 
-let contracts = try database
-    .prepare("SELECT * FROM contacts;")
-    .array(decoding: Contract.self)
+let contacts = try database.prepare("SELECT * FROM contacts;").array(decoding: Contact.self)
