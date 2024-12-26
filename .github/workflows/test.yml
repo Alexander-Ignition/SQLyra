@@ -54,5 +54,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: swift-format lint
-        run: make lint 2>&1 | Scripts/gh-workflow.swift
+        run: make lint 2>&1 | Scripts/gh-format.swift
         shell: bash

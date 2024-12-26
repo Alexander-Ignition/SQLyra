@@ -8,6 +8,9 @@ clean:
 	swift package clean
 	rm -rf $(OUTPUD_DIR)
 
+README.md: Playgrounds/README.playground/Contents.swift
+	cat $< | ./Scripts/markdown.swift > $@
+
 # MARK: - format
 
 lint:
