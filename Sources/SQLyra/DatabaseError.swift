@@ -23,17 +23,21 @@ public struct DatabaseError: Error, Equatable, Hashable {
         self.reason = reason
     }
 
-    init(code: Int32, database: Database) {
-        self.init(code: code, db: database.db)
-    }
-
-    init(code: Int32, statement: PreparedStatement) {
-        self.init(code: code, db: statement.db)
-    }
-
-    private init(code: Int32, db: OpaquePointer?) {
+    init(code: Int32, db: OpaquePointer?) {
         self.code = code
         self.message = sqlite3_errstr(code).string ?? ""
         self.reason = sqlite3_errmsg(db).string ?? ""
+    }
+}
+
+protocol DatabaseHandle {
+    var db: OpaquePointer! { get }
+}
+
+extension DatabaseHandle {
+    func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws {
+        if code != success {
+            throw DatabaseError(code: code, db: db)
+        }
     }
 }

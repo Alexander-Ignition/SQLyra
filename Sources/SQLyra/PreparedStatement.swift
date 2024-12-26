@@ -3,11 +3,11 @@ import SQLite3
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-public final class PreparedStatement {
+public final class PreparedStatement: DatabaseHandle {
     private let stmt: OpaquePointer
 
     /// Find the database handle of a prepared statement.
-    var db: OpaquePointer? { sqlite3_db_handle(stmt) }
+    var db: OpaquePointer! { sqlite3_db_handle(stmt) }
 
     public let columnIndexByName: [String: Int32]
 
@@ -48,12 +48,6 @@ public final class PreparedStatement {
         assert(code == SQLITE_OK, "sqlite3_finalize(): \(code)")
     }
 
-    private func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws {
-        if code != success {
-            throw DatabaseError(code: code, statement: self)
-        }
-    }
-
     /// Reset the prepared statement.
     public func reset() throws {
         let code = sqlite3_reset(stmt)
@@ -81,7 +75,7 @@ public final class PreparedStatement {
         case SQLITE_ROW:
             return true
         default:
-            throw DatabaseError(code: code, statement: self)
+            throw DatabaseError(code: code, db: db)
         }
     }
 

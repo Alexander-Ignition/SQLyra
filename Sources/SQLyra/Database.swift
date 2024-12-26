@@ -1,7 +1,7 @@
 import SQLite3
 
 /// SQLite database.
-public final class Database {
+public final class Database: DatabaseHandle {
 
     public struct OpenOptions: OptionSet {
         public let rawValue: Int32
@@ -83,14 +83,4 @@ public final class Database {
         try statement.bind(parameters: parameters)
         return statement
     }
-
-    /// Check result code.
-    ///
-    /// - Throws: `DatabaseError` if code not ok.
-    private func check(_ code: Int32) throws {
-        if code != SQLITE_OK {
-            throw DatabaseError(code: code, database: self)
-        }
-    }
-
 }
