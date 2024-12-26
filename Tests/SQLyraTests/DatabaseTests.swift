@@ -1,45 +1,45 @@
+import Foundation
 import SQLyra
-import XCTest
+import Testing
 
-final class DatabaseTests: XCTestCase {
+struct DatabaseTests {
     private let fileManager = FileManager.default
     private let path = "Tests/new.db"
 
-    override func setUp() {
-        super.setUp()
+    init() {
         #if Xcode  // for relative path
         fileManager.changeCurrentDirectoryPath(#file.components(separatedBy: "/Tests")[0])
         #endif
     }
 
-    func testOpen() throws {
+    @Test func open() throws {
         let url = URL(fileURLWithPath: path)
         let database = try Database.open(at: path, options: [.readwrite, .create])
         defer {
-            XCTAssertNoThrow(try fileManager.removeItem(at: url))
+            #expect(throws: Never.self) { try fileManager.removeItem(at: url) }
         }
-        XCTAssertFalse(database.isReadonly)
-        XCTAssertEqual(database.path, url.path)
-        XCTAssertTrue(fileManager.fileExists(atPath: url.path))
+        #expect(!database.isReadonly)
+        #expect(database.path == url.path)
+        #expect(fileManager.fileExists(atPath: url.path))
     }
 
-    func testOpenError() {
-        XCTAssertThrowsError(try Database.open(at: path, options: [])) { err in
-            guard let error = err as? DatabaseError else {
-                return XCTFail("Unexpected error: \(err)")
-            }
-            XCTAssertEqual(error.code, 21)  // SQLITE_MISUSE
-            XCTAssertEqual(error.message, "bad parameter or other API misuse")
-            XCTAssertEqual(error.reason, "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE")
+    @Test func openError() {
+        let error = DatabaseError(
+            code: 21,  // SQLITE_MISUSE
+            message: "bad parameter or other API misuse",
+            reason: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
+        )
+        #expect(throws: error) {
+            try Database.open(at: path, options: [])
         }
     }
 
-    func testPathInMemory() throws {
+    @Test func pathInMemory() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
-        XCTAssertEqual(database.path, "")
+        #expect(database.path == "")
     }
 
-    func testExecute() throws {
+    @Test func execute() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
 
         try database.execute("CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name CHAR(255));")
@@ -52,7 +52,7 @@ final class DatabaseTests: XCTestCase {
             ["id": "1", "name": "Paul"],
             ["id": "2", "name": "John"],
         ]
-        XCTAssertEqual(rows, expected)
+        #expect(rows == expected)
         // try database.execute("SELECT name FROM sqlite_master WHERE type ='table';")
     }
 }

@@ -21,7 +21,7 @@ public final class PreparedStatement {
     /// Retrieving statement SQL.
     public var sql: String { sqlite3_sql(stmt).string ?? "" }
 
-    @available(macOS 12.0, *)
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public var normalizedSQL: String { sqlite3_normalized_sql(stmt).string ?? "" }
 
     /// Retrieving statement SQL with parameters.
