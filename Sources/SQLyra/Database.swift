@@ -70,17 +70,10 @@ public final class Database: DatabaseHandle {
     }
 
     /// Compiling an SQL statement.
-    public func prepare(_ sql: String, _ parameters: SQLParameter?...) throws -> PreparedStatement {
-        try prepare(sql, parameters: parameters)
-    }
-
-    /// Compiling an SQL statement.
-    public func prepare(_ sql: String, parameters: [SQLParameter?]) throws -> PreparedStatement {
+    public func prepare(_ sql: String) throws -> PreparedStatement {
         var stmt: OpaquePointer!
         let code = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
         try check(code)
-        let statement = PreparedStatement(stmt: stmt)
-        try statement.bind(parameters: parameters)
-        return statement
+        return PreparedStatement(stmt: stmt)
     }
 }
