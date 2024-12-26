@@ -13,7 +13,7 @@ let regex = #/(?<file>.+\.swift):(?<line>\d+):(?<column>\d+): (?<severity>.+): \
 while let line = readLine() {
     if let match = try? regex.firstMatch(in: line) {
         let (_, file, line, column, severity, title, message) = match.output
-        print("::\(severity) file=\(file),line=\(line),col=\(column),title=\(title)::\(message)")
+        print("::\(severity) file=\(file),line=\(line),col=\(column),title=\(title)::[\(title)] \(message)")
     } else {
         print(line)
     }
