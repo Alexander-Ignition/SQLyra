@@ -2,10 +2,6 @@ import SQLite3
 
 /// SQLite database.
 public final class Database {
-    /// Execution callback type.
-    ///
-    /// - SeeAlso: `Database.execute(_:handler:)`.
-    public typealias ExecutionHandler = (_ row: [String: String]) -> Void
 
     public struct OpenOptions: OptionSet {
         public let rawValue: Int32
@@ -73,19 +69,6 @@ public final class Database {
         try check(status)
     }
 
-    /// Run multiple statements of SQL with row handler.
-    ///
-    /// - Parameters:
-    ///   - sql: statements.
-    ///   - handler: Table row handler.
-    /// - Throws: `DatabaseError`.
-    public func execute(_ sql: String, handler: @escaping ExecutionHandler) throws {
-        let context = ExecutionContext(handler)
-        let ctx = Unmanaged.passUnretained(context).toOpaque()
-        let status = sqlite3_exec(db, sql, readRow, ctx, nil)
-        try check(status)
-    }
-
     /// Compiling an SQL statement.
     public func prepare(_ sql: String, _ parameters: SQLParameter?...) throws -> PreparedStatement {
         try prepare(sql, parameters: parameters)
@@ -110,38 +93,4 @@ public final class Database {
         }
     }
 
-}
-
-private final class ExecutionContext {
-    let handler: Database.ExecutionHandler
-
-    init(_ handler: @escaping Database.ExecutionHandler) {
-        self.handler = handler
-    }
-}
-
-private func readRow(
-    ctx: UnsafeMutableRawPointer?,
-    argc: Int32,
-    argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?,
-    columns: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    guard let ctx, let argv, let columns else {
-        return SQLITE_OK
-    }
-    let count = Int(argc)
-    var row = [String: String](minimumCapacity: count)
-
-    for index in 0..<count {
-        guard let ptr = columns.advanced(by: index).pointee else {
-            continue
-        }
-        let name = String(cString: ptr)
-        if let value = argv.advanced(by: index).pointee {
-            row[name] = String(cString: value)
-        }
-    }
-    let context = Unmanaged<ExecutionContext>.fromOpaque(ctx).takeUnretainedValue()
-    context.handler(row)
-    return SQLITE_OK
 }

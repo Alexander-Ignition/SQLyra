@@ -42,17 +42,20 @@ struct DatabaseTests {
     @Test func execute() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
 
-        try database.execute("CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name CHAR(255));")
+        try database.execute("CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name TEXT);")
         try database.execute("INSERT INTO contacts (id, name) VALUES (1, 'Paul');")
         try database.execute("INSERT INTO contacts (id, name) VALUES (2, 'John');")
 
-        var rows: [[String: String]] = []
-        try database.execute("SELECT * FROM contacts;") { rows.append($0) }
+        struct Contact: Codable, Equatable {
+            let id: Int
+            let name: String
+        }
+        let contacts = try database.prepare("SELECT * FROM contacts;").array(decoding: Contact.self)
         let expected = [
-            ["id": "1", "name": "Paul"],
-            ["id": "2", "name": "John"],
+            Contact(id: 1, name: "Paul"),
+            Contact(id: 2, name: "John"),
         ]
-        #expect(rows == expected)
+        #expect(contacts == expected)
         // try database.execute("SELECT name FROM sqlite_master WHERE type ='table';")
     }
 }
