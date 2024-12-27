@@ -53,3 +53,19 @@ $(OUTPUD_DIR)/Docs: $(DOCC_ARCHIVE)
 	xcrun docc process-archive transform-for-static-hosting $^ \
 		--hosting-base-path $(TARGET_NAME) \
 		--output-path $@
+
+# MARK: - DocC preview
+
+DOC_CATALOG = Sources/$(TARGET_NAME)/$(TARGET_NAME).docc
+SYMBOL_GRAPHS = $(OUTPUD_DIR)/symbol-graphs
+
+$(SYMBOL_GRAPHS):
+	swift build --target $(TARGET_NAME) -Xswiftc -emit-symbol-graph -Xswiftc -emit-symbol-graph-dir -Xswiftc $@
+
+$(OUTPUD_DIR)/doc-preview: $(DOC_CATALOG) $(SYMBOL_GRAPHS)
+	xcrun docc preview $(DOC_CATALOG) \
+		--fallback-display-name $(TARGET_NAME) \
+		--fallback-bundle-identifier org.swift.$(TARGET_NAME) \
+		--fallback-bundle-version 1.0.0 \
+		--additional-symbol-graph-dir $(SYMBOL_GRAPHS) \
+		--output-path $@
