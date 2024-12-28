@@ -99,11 +99,8 @@ public final class Database: DatabaseHandle {
     /// - Throws: ``DatabaseError``
     public static func open(at filename: String, options: OpenOptions = []) throws -> Database {
         let database = Database()
-
         let code = sqlite3_open_v2(filename, &database.db, options.rawValue, nil)
-        try database.check(code)
-
-        return database
+        return try database.check(code)
     }
 
     /// Use ``Database/open(at:options:)``.
@@ -122,8 +119,7 @@ public final class Database: DatabaseHandle {
     /// - Parameter sql: UTF-8 encoded, semicolon-separate SQL statements to be evaluated.
     /// - Throws: ``DatabaseError``
     public func execute(_ sql: String) throws {
-        let status = sqlite3_exec(db, sql, nil, nil, nil)
-        try check(status)
+        try check(sqlite3_exec(db, sql, nil, nil, nil))
     }
 
     /// Compiling an SQL statement.
@@ -136,8 +132,7 @@ public final class Database: DatabaseHandle {
     /// - Throws: ``DatabaseError``
     public func prepare(_ sql: String) throws -> PreparedStatement {
         var stmt: OpaquePointer!
-        let code = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
-        try check(code)
+        try check(sqlite3_prepare_v2(db, sql, -1, &stmt, nil))
         return PreparedStatement(stmt: stmt)
     }
 }
