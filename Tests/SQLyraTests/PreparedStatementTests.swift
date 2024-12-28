@@ -30,7 +30,9 @@ struct PreparedStatementTests {
     @Test func sql() throws {
         let insert = try db.prepare("INSERT INTO contacts (id, name) VALUES (:id, :name)")
         #expect(insert.sql == "INSERT INTO contacts (id, name) VALUES (:id, :name)")
-        #expect(insert.normalizedSQL == "INSERT INTO contacts(id,name)VALUES(?,?);")
+        if #available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *) {
+            #expect(insert.normalizedSQL == "INSERT INTO contacts(id,name)VALUES(?,?);")
+        }
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (NULL, NULL)")
 
         try insert.bind(name: ":name", "John")
