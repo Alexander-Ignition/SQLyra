@@ -51,8 +51,15 @@ struct DatabaseTests {
         }
     }
 
-    @Test func filenameInMemory() throws {
+    @Test func memory() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
+        #expect(!database.isReadonly)
+        #expect(database.filename == "")
+    }
+
+    @Test func readonly() throws {
+        let database = try Database.open(at: path, options: [.readonly, .memory])
+        #expect(database.isReadonly)
         #expect(database.filename == "")
     }
 
