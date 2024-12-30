@@ -10,7 +10,7 @@ public struct DatabaseError: Error, Equatable, Hashable {
     public var message: String?
 
     /// A complete sentence (or more) describing why the operation failed.
-    public let reason: String?
+    public let details: String?
 
     /// A new database error.
     ///
@@ -18,16 +18,17 @@ public struct DatabaseError: Error, Equatable, Hashable {
     ///   - code: failed result code.
     ///   - message: A short error description.
     ///   - reason: A complete sentence (or more) describing why the operation failed.
-    public init(code: Int32, message: String, reason: String) {
+    public init(code: Int32, message: String, details: String) {
         self.code = code
         self.message = message
-        self.reason = reason
+        self.details = details
     }
 
     init(code: Int32, db: OpaquePointer?) {
         self.code = code
         self.message = sqlite3_errstr(code).string
-        self.reason = sqlite3_errmsg(db).string
+        let details = sqlite3_errmsg(db).string
+        self.details = details == message ? nil : details
     }
 }
 
@@ -35,7 +36,7 @@ public struct DatabaseError: Error, Equatable, Hashable {
 
 extension DatabaseError: LocalizedError {
     public var errorDescription: String? { message }
-    public var failureReason: String? { reason }
+    public var failureReason: String? { details }
 }
 
 // MARK: - CustomNSError

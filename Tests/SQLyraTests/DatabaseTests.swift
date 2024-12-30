@@ -44,7 +44,7 @@ struct DatabaseTests {
         let error = DatabaseError(
             code: SQLITE_MISUSE,
             message: "bad parameter or other API misuse",
-            reason: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
+            details: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
         )
         #expect(throws: error) {
             try Database.open(at: path, options: [])
