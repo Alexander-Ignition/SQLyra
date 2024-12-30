@@ -53,7 +53,7 @@ struct PreparedStatementTests {
         try insert.bind(name: ":id", 2).bind(name: ":name", "Bob").execute()
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (2, 'Bob')")
 
-        try insert.clear()
+        try insert.clearBindings()
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (NULL, NULL)")
     }
 
@@ -86,7 +86,7 @@ struct PreparedStatementTests {
             .bind(name: ":rating", 2.0)
             .execute()
             .reset()
-            .clear()
+            .clearBindings()
 
         try insert
             .bind(name: ":id", 6)

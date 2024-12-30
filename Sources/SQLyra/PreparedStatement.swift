@@ -47,7 +47,7 @@ public final class PreparedStatement: DatabaseHandle {
     ///
     /// The ``PreparedStatement/reset()`` function is called to reset a prepared statement object back to its initial state, ready to be re-executed.
     /// Any SQL statement variables that had values bound to them using the `bind()` API retain their values.
-    /// Use ``PreparedStatement/clear()`` to reset the bindings.
+    /// Use ``PreparedStatement/clearBindings()`` to reset the bindings.
     ///
     /// - Throws: ``DatabaseError``
     @discardableResult
@@ -62,7 +62,7 @@ public final class PreparedStatement: DatabaseHandle {
     ///
     /// - Throws: ``DatabaseError``
     @discardableResult
-    public func clear() throws -> PreparedStatement {
+    public func clearBindings() throws -> PreparedStatement {
         try check(sqlite3_clear_bindings(stmt))
     }
 
