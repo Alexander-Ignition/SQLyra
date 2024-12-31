@@ -32,13 +32,6 @@ public struct DatabaseError: Error, Equatable, Hashable {
     }
 }
 
-// MARK: - LocalizedError
-
-extension DatabaseError: LocalizedError {
-    public var errorDescription: String? { message }
-    public var failureReason: String? { details }
-}
-
 // MARK: - CustomNSError
 
 extension DatabaseError: CustomNSError {
@@ -48,8 +41,8 @@ extension DatabaseError: CustomNSError {
 
     public var errorUserInfo: [String: Any] {
         var userInfo: [String: Any] = [:]
-        userInfo[NSLocalizedDescriptionKey] = errorDescription
-        userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
+        userInfo[NSLocalizedDescriptionKey] = message
+        userInfo[NSLocalizedFailureReasonErrorKey] = details
         return userInfo
     }
 }
