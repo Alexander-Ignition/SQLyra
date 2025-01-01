@@ -1,6 +1,23 @@
 import Foundation
+import SQLite3
 import SQLyra
 import Testing
+
+@Test func openOptionsRawValue() {
+    typealias Options = Database.OpenOptions
+
+    #expect(Options.create.rawValue == SQLITE_OPEN_CREATE)
+    #expect(Options.readwrite.rawValue == SQLITE_OPEN_READWRITE)
+    #expect(Options.readonly.rawValue == SQLITE_OPEN_READONLY)
+    #expect(Options.memory.rawValue == SQLITE_OPEN_MEMORY)
+    #expect(Options.extendedResultCode.rawValue == SQLITE_OPEN_EXRESCODE)
+    #expect(Options.uri.rawValue == SQLITE_OPEN_URI)
+    #expect(Options.noFollow.rawValue == SQLITE_OPEN_NOFOLLOW)
+    #expect(Options.noMutex.rawValue == SQLITE_OPEN_NOMUTEX)
+    #expect(Options.fullMutex.rawValue == SQLITE_OPEN_FULLMUTEX)
+    #expect(Options.sharedCache.rawValue == SQLITE_OPEN_SHAREDCACHE)
+    #expect(Options.privateCache.rawValue == SQLITE_OPEN_PRIVATECACHE)
+}
 
 struct DatabaseTests {
     private let fileManager = FileManager.default
@@ -14,45 +31,59 @@ struct DatabaseTests {
 
     @Test func open() throws {
         let url = URL(fileURLWithPath: path)
-        let database = try Database.open(at: path, options: [.readwrite, .create])
+        var database: Database! = try Database.open(at: path, options: [.readwrite, .create])
         defer {
+            database = nil  // closing before remove a file
             #expect(throws: Never.self) { try fileManager.removeItem(at: url) }
         }
         #expect(!database.isReadonly)
-        #expect(database.path == url.path)
+        #expect(database.filename == url.path)
         #expect(fileManager.fileExists(atPath: url.path))
     }
 
     @Test func openError() {
         let error = DatabaseError(
-            code: 21,  // SQLITE_MISUSE
+            code: SQLITE_MISUSE,
             message: "bad parameter or other API misuse",
-            reason: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
+            details: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
         )
         #expect(throws: error) {
             try Database.open(at: path, options: [])
         }
     }
 
-    @Test func pathInMemory() throws {
+    @Test func memory() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
-        #expect(database.path == "")
+        #expect(!database.isReadonly)
+        #expect(database.filename == "")
+    }
+
+    @Test func readonly() throws {
+        let database = try Database.open(at: path, options: [.readonly, .memory])
+        #expect(database.isReadonly)
+        #expect(database.filename == "")
     }
 
     @Test func execute() throws {
         let database = try Database.open(at: path, options: [.readwrite, .memory])
 
-        try database.execute("CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name CHAR(255));")
-        try database.execute("INSERT INTO contacts (id, name) VALUES (1, 'Paul');")
-        try database.execute("INSERT INTO contacts (id, name) VALUES (2, 'John');")
+        let sql = """
+            CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name TEXT);
+            INSERT INTO contacts (id, name) VALUES (1, 'Paul');
+            INSERT INTO contacts (id, name) VALUES (2, 'John');
+            """
+        try database.execute(sql)
 
-        var rows: [[String: String]] = []
-        try database.execute("SELECT * FROM contacts;") { rows.append($0) }
+        struct Contact: Codable, Equatable {
+            let id: Int
+            let name: String
+        }
+        let contacts = try database.prepare("SELECT * FROM contacts;").array(decoding: Contact.self)
         let expected = [
-            ["id": "1", "name": "Paul"],
-            ["id": "2", "name": "John"],
+            Contact(id: 1, name: "Paul"),
+            Contact(id: 2, name: "John"),
         ]
-        #expect(rows == expected)
+        #expect(contacts == expected)
         // try database.execute("SELECT name FROM sqlite_master WHERE type ='table';")
     }
 }
