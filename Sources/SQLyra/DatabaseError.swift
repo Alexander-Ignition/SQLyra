@@ -35,7 +35,7 @@ public struct DatabaseError: Error, Equatable, Hashable {
 // MARK: - CustomNSError
 
 extension DatabaseError: CustomNSError {
-    public static let errorDomain = "SQLyra.DatabaseError"
+    public static let errorDomain = "SQLyra.DatabaseErrorDomain"
 
     public var errorCode: Int { Int(code) }
 
