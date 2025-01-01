@@ -17,7 +17,7 @@ public struct DatabaseError: Error, Equatable, Hashable {
     /// - Parameters:
     ///   - code: failed result code.
     ///   - message: A short error description.
-    ///   - reason: A complete sentence (or more) describing why the operation failed.
+    ///   - details: A complete sentence (or more) describing why the operation failed.
     public init(code: Int32, message: String, details: String) {
         self.code = code
         self.message = message
