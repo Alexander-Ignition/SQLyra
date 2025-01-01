@@ -31,8 +31,9 @@ struct DatabaseTests {
 
     @Test func open() throws {
         let url = URL(fileURLWithPath: path)
-        let database = try Database.open(at: path, options: [.readwrite, .create])
+        var database: Database! = try Database.open(at: path, options: [.readwrite, .create])
         defer {
+            database = nil  // closing before remove a file
             #expect(throws: Never.self) { try fileManager.removeItem(at: url) }
         }
         #expect(!database.isReadonly)
