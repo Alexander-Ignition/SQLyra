@@ -6,7 +6,6 @@ import SQLite3
 /// To execute an SQL statement, it must first be compiled into a byte-code program using one of these routines.
 /// Or, in other words, these routines are constructors for the prepared statement object.
 public final class PreparedStatement: DatabaseHandle {
-    @usableFromInline
     let stmt: OpaquePointer
 
     /// Find the database handle of a prepared statement.
@@ -80,54 +79,6 @@ public final class PreparedStatement: DatabaseHandle {
     public func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
         try StatementDecoder().decode(type, from: self)
     }
-
-    // MARK: - String
-
-    public func string(at index: Int32) -> String? {
-        sqlite3_column_text(stmt, index).map { String(cString: $0) }
-    }
-
-    public func string(for name: String) -> String? {
-        columnIndexByName[name].flatMap { string(at: $0) }
-    }
-
-    // MARK: - Int64
-
-    public func int64(at index: Int32) -> Int64 {
-        sqlite3_column_int64(stmt, index)
-    }
-
-    public func int64(for name: String) -> Int64? {
-        columnIndexByName[name].map { int64(at: $0) }
-    }
-
-    // MARK: - Double
-
-    public func double(at index: Int32) -> Double {
-        sqlite3_column_double(stmt, index)
-    }
-
-    public func double(for name: String) -> Double? {
-        columnIndexByName[name].map { double(at: $0) }
-    }
-
-    // MARK: - Blob
-
-    public func blob(at index: Int32) -> Data? {
-        sqlite3_column_blob(stmt, index).map { bytes in
-            Data(bytes: bytes, count: Int(sqlite3_column_bytes(stmt, index)))
-        }
-    }
-
-    // MARK: - Null
-
-    public func null(at index: Int32) -> Bool {
-        sqlite3_column_type(stmt, index) == SQLITE_NULL
-    }
-
-    public func null(for name: String) -> Bool {
-        columnIndexByName[name].map { null(at: $0) } ?? true
-    }
 }
 
 // MARK: - Retrieving Statement SQL
@@ -168,61 +119,41 @@ extension PreparedStatement {
     }
 }
 
-// MARK: - Bind SQL Parameters
+// MARK: - Binding values
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 extension PreparedStatement {
     @discardableResult
-    public func bind(name: String, _ parameter: SQLParameter?) throws -> PreparedStatement {
-        try bind(index: parameterIndex(for: name), parameter)
+    public func bind(name: String, parameter: SQLParameter) throws -> PreparedStatement {
+        try bind(index: parameterIndex(for: name), parameter: parameter)
     }
 
     @discardableResult
-    public func bind(index: Int32, _ parameter: SQLParameter?) throws -> PreparedStatement {
-        var code = SQLITE_OK
-        switch parameter {
-        case .none:
-            code = sqlite3_bind_null(stmt, index)
-        case .int64(let number)?:
-            code = sqlite3_bind_int64(stmt, index, number)
-        case .double(let double)?:
-            code = sqlite3_bind_double(stmt, index, double)
-        case .text(let string)?:
-            code = sqlite3_bind_text(stmt, index, string, -1, SQLITE_TRANSIENT)
-        case .blob(let data)?:
-            code = data.withUnsafeBytes { ptr in
-                sqlite3_bind_blob(stmt, index, ptr.baseAddress, Int32(data.count), SQLITE_TRANSIENT)
+    public func bind(parameters: SQLParameter...) throws -> PreparedStatement {
+        for (index, parameter) in parameters.enumerated() {
+            try bind(index: Int32(index + 1), parameter: parameter)
+        }
+        return self
+    }
+
+    @discardableResult
+    public func bind(index: Int32, parameter: SQLParameter) throws -> PreparedStatement {
+        let code =
+            switch parameter {
+            case .null:
+                sqlite3_bind_null(stmt, index)
+            case .int64(let number):
+                sqlite3_bind_int64(stmt, index, number)
+            case .double(let double):
+                sqlite3_bind_double(stmt, index, double)
+            case .text(let string):
+                sqlite3_bind_text(stmt, index, string, -1, SQLITE_TRANSIENT)
+            case .blob(let data):
+                data.withUnsafeBytes { ptr in
+                    sqlite3_bind_blob(stmt, index, ptr.baseAddress, Int32(data.count), SQLITE_TRANSIENT)
+                }
             }
-        }
-        return try check(code)
-    }
-
-    @discardableResult
-    public func bind(index: Int32, int64: Int64) throws -> PreparedStatement {
-        try check(sqlite3_bind_int64(stmt, index, int64))
-    }
-
-    @discardableResult
-    public func bind(index: Int32, double: Double) throws -> PreparedStatement {
-        try check(sqlite3_bind_double(stmt, index, double))
-    }
-
-    @discardableResult
-    public func bind(name: String, string: String) throws -> PreparedStatement {
-        try bind(index: parameterIndex(for: name), string: string)
-    }
-
-    @discardableResult
-    public func bind(index: Int32, string: String) throws -> PreparedStatement {
-        try check(sqlite3_bind_text(stmt, index, string, -1, SQLITE_TRANSIENT))
-    }
-
-    @discardableResult
-    public func bind(index: Int32, data: Data) throws -> PreparedStatement {
-        let code = data.withUnsafeBytes { ptr in
-            sqlite3_bind_blob(stmt, index, ptr.baseAddress, Int32(data.count), SQLITE_TRANSIENT)
-        }
         return try check(code)
     }
 }

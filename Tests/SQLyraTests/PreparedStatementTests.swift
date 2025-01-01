@@ -7,24 +7,17 @@ struct Contact: Codable, Equatable, Sendable {
     let name: String
     let rating: Double?
     let image: Data?
-}
 
-private let createTableContacts =
-    """
-    CREATE TABLE contacts (
-        id INT PRIMARY KEY NOT NULL,
-        name TEXT NOT NULL,
-        rating FLOAT,
-        image BLOB
-    );
-    """
+    static let table = "CREATE TABLE contacts (id INT, name TEXT, rating FLOAT, image BLOB);"
+    static let insert = "INSERT INTO contacts (id, name, rating, image) VALUES (:id, :name, :rating, :image)"
+}
 
 struct PreparedStatementTests {
     private let db: Database
 
     init() throws {
-        db = try Database.open(at: ":memory:", options: [.readwrite, .memory, .extendedResultCode])
-        try db.execute(createTableContacts)
+        db = try Database.open(at: ":memory:", options: [.readwrite, .memory])
+        try db.execute(Contact.table)
     }
 
     @Test func sql() throws {
@@ -35,7 +28,7 @@ struct PreparedStatementTests {
         }
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (NULL, NULL)")
 
-        try insert.bind(name: ":name", "John")
+        try insert.bind(name: ":name", parameter: "John")
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (NULL, 'John')")
     }
 
@@ -47,10 +40,10 @@ struct PreparedStatementTests {
         #expect(insert.parameterIndex(for: ":name") == 2)
     }
 
-    @Test func clear() throws {
+    @Test func clearBindings() throws {
         let insert = try db.prepare("INSERT INTO contacts (id, name) VALUES (:id, :name)")
 
-        try insert.bind(name: ":id", 2).bind(name: ":name", "Bob").execute()
+        try insert.bind(parameters: 2, "Bob").execute()
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (2, 'Bob')")
 
         try insert.clearBindings()
@@ -58,41 +51,28 @@ struct PreparedStatementTests {
     }
 
     @Test func bind() throws {
-        let insertContract = "INSERT INTO contacts (id, name, rating, image)"
-        let insert = try db.prepare("\(insertContract) VALUES (:id, :name, :rating, :image)")
+        let insert = try db.prepare(Contact.insert)
 
         try insert
-            .bind(name: ":id", 10)
-            .bind(name: ":name", "A")
-            .bind(name: ":rating", 1.0)
-            .bind(name: ":image", .blob(Data("123".utf8)))
-        #expect(insert.expandedSQL == "\(insertContract) VALUES (10, 'A', 1.0, x'313233')")
+            .bind(name: ":id", parameter: 10)
+            .bind(name: ":name", parameter: "A")
+            .bind(name: ":rating", parameter: 1.0)
+            .bind(name: ":image", parameter: .blob(Data("123".utf8)))
+        #expect(insert.expandedSQL == "INSERT INTO contacts (id, name, rating, image) VALUES (10, 'A', 1.0, x'313233')")
 
         try insert
-            .bind(index: 1, 20)
-            .bind(index: 2, "B")
-            .bind(index: 3, 0.0)
-            .bind(index: 4, nil)
-        #expect(insert.expandedSQL == "\(insertContract) VALUES (20, 'B', 0.0, NULL)")
+            .bind(index: 1, parameter: 20)
+            .bind(index: 2, parameter: "B")
+            .bind(index: 3, parameter: 0.0)
+            .bind(index: 4, parameter: nil)
+        #expect(insert.expandedSQL == "INSERT INTO contacts (id, name, rating, image) VALUES (20, 'B', 0.0, NULL)")
     }
 
     @Test func columns() throws {
-        let sgl = "INSERT INTO contacts (id, name, rating, image) VALUES (:id, :name, :rating, :image);"
-        let insert = try db.prepare(sgl)
+        let insert = try db.prepare(Contact.insert)
 
-        try insert
-            .bind(name: ":id", 5)
-            .bind(name: ":name", "A")
-            .bind(name: ":rating", 2.0)
-            .execute()
-            .reset()
-            .clearBindings()
-
-        try insert
-            .bind(name: ":id", 6)
-            .bind(name: ":name", "B")
-            .bind(name: ":image", .blob(Data("123".utf8)))
-            .execute()
+        try insert.bind(parameters: 5, "A", 2.0, .null).execute().reset()
+        try insert.bind(parameters: 6, "B", .null, .blob(Data("123".utf8))).execute()
 
         let select = try db.prepare("SELECT * FROM contacts;")
         #expect(select.columnCount == 4)
