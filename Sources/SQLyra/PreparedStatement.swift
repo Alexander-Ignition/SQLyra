@@ -11,6 +11,12 @@ public final class PreparedStatement: DatabaseHandle {
     /// Find the database handle of a prepared statement.
     var db: OpaquePointer! { sqlite3_db_handle(stmt) }
 
+    private(set) lazy var columnIndexByName = [String: Int32](
+        uniqueKeysWithValues: (0..<columnCount).compactMap { index in
+            column(at: index).name.map { name in (name, index) }
+        }
+    )
+
     init(stmt: OpaquePointer) {
         self.stmt = stmt
     }
@@ -158,49 +164,51 @@ extension PreparedStatement {
     }
 }
 
-// MARK: - Columns
-
-extension PreparedStatement {
-    /// Number of columns in a `PreparedStatement`.
-    public var columnCount: Int32 { sqlite3_column_count(stmt) }
-
-    public func columnName(at index: Int32) -> String? {
-        sqlite3_column_name(stmt, index).string
-    }
-
-    var columnIndexByName: [String: Int32] {
-        [String: Int32](
-            uniqueKeysWithValues: (0..<columnCount).compactMap { index in
-                columnName(at: index).map { name in (name, index) }
-            }
-        )
-    }
-}
-
 // MARK: - Result values from a Query
 
 extension PreparedStatement {
+    /// Return the number of columns in the result set.
+    public var columnCount: Int32 { sqlite3_column_count(stmt) }
 
-    public func columnString(at index: Int32) -> String? {
-        sqlite3_column_text(stmt, index).flatMap { String(cString: $0) }
+    public func column(at index: Int32) -> Column {
+        Column(index: index, statement: self)
     }
 
-    public func columnInt64(at index: Int32) -> Int64 {
-        sqlite3_column_int64(stmt, index)
+    public func column(for name: String) -> Column? {
+        columnIndexByName[name].map { Column(index: $0, statement: self) }
     }
 
-    public func columnDouble(at index: Int32) -> Double {
-        sqlite3_column_double(stmt, index)
-    }
+    /// Information about a single column of the current result row of a query.
+    public struct Column {
+        let index: Int32
+        let statement: PreparedStatement
+        private var stmt: OpaquePointer { statement.stmt }
 
-    public func columnBlob(at index: Int32) -> Data? {
-        sqlite3_column_blob(stmt, index).map { bytes in
-            Data(bytes: bytes, count: Int(sqlite3_column_bytes(stmt, index)))
+        /// Returns the name assigned to a specific column in the result set of the SELECT statement.
+        ///
+        /// The name of a result column is the value of the "AS" clause for that column, if there is an AS clause.
+        /// If there is no AS clause then the name of the column is unspecified and may change from one release of SQLite to the next.
+        public var name: String? { sqlite3_column_name(stmt, index).string }
+
+        public var isNull: Bool { sqlite3_column_type(stmt, index) == SQLITE_NULL }
+
+        /// 64-bit INTEGER result.
+        public var int64: Int64 { sqlite3_column_int64(stmt, index) }
+
+        /// 64-bit IEEE floating point number.
+        public var double: Double { sqlite3_column_double(stmt, index) }
+
+        /// UTF-8 TEXT result.
+        public var string: String? {
+            sqlite3_column_text(stmt, index).flatMap { String(cString: $0) }
         }
-    }
 
-    public func columnNull(at index: Int32) -> Bool {
-        sqlite3_column_type(stmt, index) == SQLITE_NULL
+        /// BLOB result.
+        public var blob: Data? {
+            sqlite3_column_blob(stmt, index).map { bytes in
+                Data(bytes: bytes, count: Int(sqlite3_column_bytes(stmt, index)))
+            }
+        }
     }
 }
 
