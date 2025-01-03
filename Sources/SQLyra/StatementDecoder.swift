@@ -20,20 +20,18 @@ public struct StatementDecoder {
 
 private final class _StatementDecoder {
     let statement: PreparedStatement
-    let columns: [String: Int32]
     let userInfo: [CodingUserInfoKey: Any]
     private(set) var codingPath: [any CodingKey] = []
 
     init(statement: PreparedStatement, userInfo: [CodingUserInfoKey: Any]) {
         self.statement = statement
         self.userInfo = userInfo
-        self.columns = statement.columnIndexByName
         self.codingPath.reserveCapacity(3)
     }
 
     @inline(__always)
     func null<K>(for key: K) -> Bool where K: CodingKey {
-        columns[key.stringValue].map { statement.columnNull(at: $0) } ?? true
+        statement.column(for: key.stringValue)?.isNull ?? true
     }
 
     @inline(__always)
@@ -44,17 +42,20 @@ private final class _StatementDecoder {
     @inline(__always)
     func string<K>(forKey key: K, single: Bool = false) throws -> String where K: CodingKey {
         let index = try columnIndex(forKey: key, single: single)
-        guard let value = statement.columnString(at: index) else {
+        guard let value = statement.column(at: index).string else {
             throw DecodingError.valueNotFound(String.self, context(key, single, ""))
         }
         return value
     }
 
     @inline(__always)
-    func floating<T, K>(_ type: T.Type, forKey key: K, single: Bool = false) throws -> T
-    where T: BinaryFloatingPoint, K: CodingKey {
+    func floating<T, K>(
+        _ type: T.Type,
+        forKey key: K,
+        single: Bool = false
+    ) throws -> T where T: BinaryFloatingPoint, K: CodingKey {
         let index = try columnIndex(forKey: key, single: single)
-        let value = statement.columnDouble(at: index)
+        let value = statement.column(at: index).double
         guard let number = type.init(exactly: value) else {
             throw DecodingError.dataCorrupted(context(key, single, numberNotFit(type, value: "\(value)")))
         }
@@ -64,7 +65,7 @@ private final class _StatementDecoder {
     @inline(__always)
     func integer<T, K>(_ type: T.Type, forKey key: K, single: Bool = false) throws -> T where T: Numeric, K: CodingKey {
         let index = try columnIndex(forKey: key, single: single)
-        let value = statement.columnInt64(at: index)
+        let value = statement.column(at: index).int64
         guard let number = type.init(exactly: value) else {
             throw DecodingError.dataCorrupted(context(key, single, numberNotFit(type, value: "\(value)")))
         }
@@ -79,7 +80,7 @@ private final class _StatementDecoder {
     ) throws -> T where T: Decodable, K: CodingKey {
         if type == Data.self {
             let index = try columnIndex(forKey: key, single: single)
-            guard let data = statement.columnBlob(at: index) else {
+            guard let data = statement.column(at: index).blob else {
                 throw DecodingError.valueNotFound(Data.self, context(key, single, ""))
             }
             // swift-format-ignore: NeverForceUnwrap
@@ -96,7 +97,7 @@ private final class _StatementDecoder {
     }
 
     private func columnIndex<K>(forKey key: K, single: Bool) throws -> Int32 where K: CodingKey {
-        guard let index = columns[key.stringValue] else {
+        guard let index = statement.columnIndexByName[key.stringValue] else {
             throw DecodingError.keyNotFound(key, context(key, single, "Column index not found for key: \(key)"))
         }
         return index
@@ -169,9 +170,9 @@ extension _StatementDecoder {
     struct KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
         let decoder: _StatementDecoder
         var codingPath: [any CodingKey] { decoder.codingPath }
-        var allKeys: [Key] { decoder.columns.keys.compactMap { Key(stringValue: $0) } }
+        var allKeys: [Key] { decoder.statement.columnIndexByName.keys.compactMap { Key(stringValue: $0) } }
 
-        func contains(_ key: Key) -> Bool { decoder.columns.keys.contains(key.stringValue) }
+        func contains(_ key: Key) -> Bool { decoder.statement.columnIndexByName.keys.contains(key.stringValue) }
         func decodeNil(forKey key: Key) throws -> Bool { decoder.null(for: key) }
         func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool { try decoder.bool(forKey: key) }
         func decode(_ type: String.Type, forKey key: Key) throws -> String { try decoder.string(forKey: key) }

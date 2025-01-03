@@ -80,10 +80,10 @@ struct PreparedStatementTests {
         var contracts: [Contact] = []
         while try select.step() {
             let contact = Contact(
-                id: Int(select.columnInt64(at: 0)),
-                name: select.columnString(at: 1) ?? "",
-                rating: select.columnDouble(at: 2),
-                image: select.columnBlob(at: 3)
+                id: Int(select.column(at: 0).int64),
+                name: select.column(at: 1).string ?? "",
+                rating: select.column(at: 2).double,
+                image: select.column(at: 3).blob
             )
             contracts.append(contact)
         }
