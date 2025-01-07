@@ -78,12 +78,11 @@ struct DatabaseTests {
             let id: Int
             let name: String
         }
-        let contacts = try database.prepare("SELECT * FROM contacts;").array(decoding: Contact.self)
+        let contacts = try database.prepare("SELECT * FROM contacts;").array(Contact.self)
         let expected = [
             Contact(id: 1, name: "Paul"),
             Contact(id: 2, name: "John"),
         ]
         #expect(contacts == expected)
-        // try database.execute("SELECT name FROM sqlite_master WHERE type ='table';")
     }
 }

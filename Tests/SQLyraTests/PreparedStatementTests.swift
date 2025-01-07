@@ -78,12 +78,12 @@ struct PreparedStatementTests {
         #expect(select.columnCount == 4)
 
         var contracts: [Contact] = []
-        while try select.step() {
+        while let row = try select.row() {
             let contact = Contact(
-                id: Int(select.column(at: 0).int64),
-                name: select.column(at: 1).string ?? "",
-                rating: select.column(at: 2).double,
-                image: select.column(at: 3).blob
+                id: Int(row.id.int64),
+                name: row.name.string ?? "",
+                rating: row.rating.double,
+                image: row.image.blob
             )
             contracts.append(contact)
         }

@@ -13,7 +13,7 @@ public final class PreparedStatement: DatabaseHandle {
 
     private(set) lazy var columnIndexByName = [String: Int32](
         uniqueKeysWithValues: (0..<columnCount).compactMap { index in
-            column(at: index).name.map { name in (name, index) }
+            columnName(at: index).map { name in (name, index) }
         }
     )
 
@@ -34,20 +34,6 @@ public final class PreparedStatement: DatabaseHandle {
         try check(sqlite3_step(stmt), SQLITE_DONE)
     }
 
-    /// The new row of data is ready for processing.
-    ///
-    /// - Throws: ``DatabaseError``
-    public func step() throws -> Bool {
-        switch sqlite3_step(stmt) {
-        case SQLITE_DONE:
-            return false
-        case SQLITE_ROW:
-            return true
-        case let code:
-            throw DatabaseError(code: code, db: db)
-        }
-    }
-
     /// Reset the prepared statement.
     ///
     /// The ``PreparedStatement/reset()`` function is called to reset a prepared statement object back to its initial state, ready to be re-executed.
@@ -58,32 +44,6 @@ public final class PreparedStatement: DatabaseHandle {
     @discardableResult
     public func reset() throws -> PreparedStatement {
         try check(sqlite3_reset(stmt))
-    }
-
-    /// Reset all bindings on a prepared statement.
-    ///
-    /// Contrary to the intuition of many, ``PreparedStatement/reset()`` does not reset the bindings on a prepared statement.
-    /// Use this routine to reset all host parameters to NULL.
-    ///
-    /// - Throws: ``DatabaseError``
-    @discardableResult
-    public func clearBindings() throws -> PreparedStatement {
-        try check(sqlite3_clear_bindings(stmt))
-    }
-
-    // MARK: - Decodable
-
-    public func array<T>(decoding type: T.Type) throws -> [T] where T: Decodable {
-        var array: [T] = []
-        while try step() {
-            let value = try decode(type)
-            array.append(value)
-        }
-        return array
-    }
-
-    public func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
-        try StatementDecoder().decode(type, from: self)
     }
 }
 
@@ -162,20 +122,83 @@ extension PreparedStatement {
             }
         return try check(code)
     }
+
+    /// Reset all bindings on a prepared statement.
+    ///
+    /// Contrary to the intuition of many, ``PreparedStatement/reset()`` does not reset the bindings on a prepared statement.
+    /// Use this routine to reset all host parameters to NULL.
+    ///
+    /// - Throws: ``DatabaseError``
+    @discardableResult
+    public func clearBindings() throws -> PreparedStatement {
+        try check(sqlite3_clear_bindings(stmt))
+    }
 }
 
-// MARK: - Result values from a Query
+// MARK: - Columns
 
 extension PreparedStatement {
     /// Return the number of columns in the result set.
     public var columnCount: Int32 { sqlite3_column_count(stmt) }
 
-    public func column(at index: Int32) -> Column {
-        Column(index: index, statement: self)
+    public func columnName(at index: Int32) -> String? {
+        sqlite3_column_name(stmt, index).string
+    }
+}
+
+// MARK: - Result values from a Query
+
+extension PreparedStatement {
+    /// The new row of data is ready for processing.
+    ///
+    /// - Throws: ``DatabaseError``
+    public func row() throws -> Row? {
+        switch sqlite3_step(stmt) {
+        case SQLITE_DONE:
+            return nil
+        case SQLITE_ROW:
+            return Row(statement: self)
+        case let code:
+            throw DatabaseError(code: code, db: db)
+        }
     }
 
-    public func column(for name: String) -> Column? {
-        columnIndexByName[name].map { Column(index: $0, statement: self) }
+    public func array<T>(_ type: T.Type) throws -> [T] where T: Decodable {
+        try array(type, using: RowDecoder.default)
+    }
+
+    public func array<T>(_ type: T.Type, using decoder: RowDecoder) throws -> [T] where T: Decodable {
+        var array: [T] = []
+        while let row = try row() {
+            let value = try row.decode(type, using: decoder)
+            array.append(value)
+        }
+        return array
+    }
+
+    @dynamicMemberLookup
+    public struct Row {
+        let statement: PreparedStatement
+
+        public subscript(dynamicMember name: String) -> Column! {
+            self[name]
+        }
+
+        public subscript(name: String) -> Column? {
+            statement.columnIndexByName[name].map { self[$0] }
+        }
+
+        public subscript(index: Int32) -> Column {
+            Column(index: index, statement: statement)
+        }
+
+        public func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
+            try decode(type, using: RowDecoder.default)
+        }
+
+        public func decode<T>(_ type: T.Type, using decoder: RowDecoder) throws -> T where T: Decodable {
+            try decoder.decode(type, from: self)
+        }
     }
 
     /// Information about a single column of the current result row of a query.

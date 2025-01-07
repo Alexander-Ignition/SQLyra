@@ -50,5 +50,5 @@ struct Contact: Codable {
     let name: String
 }
 
-let contacts = try database.prepare("SELECT * FROM contacts;").array(decoding: Contact.self)
+let contacts = try database.prepare("SELECT * FROM contacts;").array(Contact.self)
 ```
