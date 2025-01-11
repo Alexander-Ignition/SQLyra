@@ -11,7 +11,7 @@ public final class PreparedStatement: DatabaseHandle {
     /// Find the database handle of a prepared statement.
     var db: OpaquePointer! { sqlite3_db_handle(stmt) }
 
-    private(set) lazy var columnIndexByName = [String: Int32](
+    private(set) lazy var columnIndexByName = [String: Int](
         uniqueKeysWithValues: (0..<columnCount).compactMap { index in
             columnName(at: index).map { name in (name, index) }
         }
@@ -72,16 +72,16 @@ extension PreparedStatement {
 
 extension PreparedStatement {
     /// Number of SQL parameters.
-    public var parameterCount: Int32 { sqlite3_bind_parameter_count(stmt) }
+    public var parameterCount: Int { Int(sqlite3_bind_parameter_count(stmt)) }
 
     /// Name of a SQL parameter.
-    public func parameterName(at index: Int32) -> String? {
-        sqlite3_bind_parameter_name(stmt, index).map { String(cString: $0) }
+    public func parameterName(at index: Int) -> String? {
+        sqlite3_bind_parameter_name(stmt, Int32(index)).map { String(cString: $0) }
     }
 
     /// Index of a parameter with a given name.
-    public func parameterIndex(for name: String) -> Int32 {
-        sqlite3_bind_parameter_index(stmt, name)
+    public func parameterIndex(for name: String) -> Int {
+        Int(sqlite3_bind_parameter_index(stmt, name))
     }
 }
 
@@ -98,13 +98,14 @@ extension PreparedStatement {
     @discardableResult
     public func bind(parameters: SQLParameter...) throws -> PreparedStatement {
         for (index, parameter) in parameters.enumerated() {
-            try bind(index: Int32(index + 1), parameter: parameter)
+            try bind(index: index + 1, parameter: parameter)
         }
         return self
     }
 
     @discardableResult
-    public func bind(index: Int32, parameter: SQLParameter) throws -> PreparedStatement {
+    public func bind(index: Int, parameter: SQLParameter) throws -> PreparedStatement {
+        let index = Int32(index)
         let code =
             switch parameter {
             case .null:
@@ -139,10 +140,14 @@ extension PreparedStatement {
 
 extension PreparedStatement {
     /// Return the number of columns in the result set.
-    public var columnCount: Int32 { sqlite3_column_count(stmt) }
+    public var columnCount: Int { Int(sqlite3_column_count(stmt)) }
 
-    public func columnName(at index: Int32) -> String? {
-        sqlite3_column_name(stmt, index).string
+    /// Returns the name assigned to a specific column in the result set of the SELECT statement.
+    ///
+    /// The name of a result column is the value of the "AS" clause for that column, if there is an AS clause.
+    /// If there is no AS clause then the name of the column is unspecified and may change from one release of SQLite to the next.
+    public func columnName(at index: Int) -> String? {
+        sqlite3_column_name(stmt, Int32(index)).string
     }
 }
 
@@ -154,12 +159,9 @@ extension PreparedStatement {
     /// - Throws: ``DatabaseError``
     public func row() throws -> Row? {
         switch sqlite3_step(stmt) {
-        case SQLITE_DONE:
-            return nil
-        case SQLITE_ROW:
-            return Row(statement: self)
-        case let code:
-            throw DatabaseError(code: code, db: db)
+        case SQLITE_DONE: nil
+        case SQLITE_ROW: Row(statement: self)
+        case let code: throw DatabaseError(code: code, db: db)
         }
     }
 
@@ -180,16 +182,19 @@ extension PreparedStatement {
     public struct Row {
         let statement: PreparedStatement
 
-        public subscript(dynamicMember name: String) -> Column! {
+        public subscript(dynamicMember name: String) -> Value? {
             self[name]
         }
 
-        public subscript(name: String) -> Column? {
-            statement.columnIndexByName[name].map { self[$0] }
+        public subscript(name: String) -> Value? {
+            statement.columnIndexByName[name].flatMap { self[$0] }
         }
 
-        public subscript(index: Int32) -> Column {
-            Column(index: index, statement: statement)
+        public subscript(index: Int) -> Value? {
+            if sqlite3_column_type(statement.stmt, Int32(index)) == SQLITE_NULL {
+                return nil
+            }
+            return Value(index: Int32(index), statement: statement)
         }
 
         public func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
@@ -201,25 +206,26 @@ extension PreparedStatement {
         }
     }
 
-    /// Information about a single column of the current result row of a query.
-    public struct Column {
+    /// Result value from a query.
+    public struct Value {
         let index: Int32
         let statement: PreparedStatement
         private var stmt: OpaquePointer { statement.stmt }
 
-        /// Returns the name assigned to a specific column in the result set of the SELECT statement.
-        ///
-        /// The name of a result column is the value of the "AS" clause for that column, if there is an AS clause.
-        /// If there is no AS clause then the name of the column is unspecified and may change from one release of SQLite to the next.
-        public var name: String? { sqlite3_column_name(stmt, index).string }
-
-        public var isNull: Bool { sqlite3_column_type(stmt, index) == SQLITE_NULL }
-
         /// 64-bit INTEGER result.
         public var int64: Int64 { sqlite3_column_int64(stmt, index) }
 
+        /// 32-bit INTEGER result.
+        public var int32: Int32 { sqlite3_column_int(stmt, index) }
+
+        /// A platform-specific integer.
+        public var int: Int { Int(int64) }
+
         /// 64-bit IEEE floating point number.
         public var double: Double { sqlite3_column_double(stmt, index) }
+
+        /// Size of a BLOB or a UTF-8 TEXT result in bytes.
+        public var count: Int { Int(sqlite3_column_bytes(stmt, index)) }
 
         /// UTF-8 TEXT result.
         public var string: String? {
@@ -228,9 +234,7 @@ extension PreparedStatement {
 
         /// BLOB result.
         public var blob: Data? {
-            sqlite3_column_blob(stmt, index).map { bytes in
-                Data(bytes: bytes, count: Int(sqlite3_column_bytes(stmt, index)))
-            }
+            sqlite3_column_blob(stmt, index).map { Data(bytes: $0, count: count) }
         }
     }
 }

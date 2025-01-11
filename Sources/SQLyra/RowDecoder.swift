@@ -30,13 +30,11 @@ private struct _RowDecoder: Decoder {
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
-        let context = DecodingError.Context(codingPath: codingPath, debugDescription: "")
-        throw DecodingError.typeMismatch(PreparedStatement.self, context)
+        throw DecodingError.typeMismatch(PreparedStatement.self, .context(codingPath, ""))
     }
 
     func singleValueContainer() throws -> any SingleValueDecodingContainer {
-        let context = DecodingError.Context(codingPath: codingPath, debugDescription: "")
-        throw DecodingError.typeMismatch(PreparedStatement.self, context)
+        throw DecodingError.typeMismatch(PreparedStatement.self, .context(codingPath, ""))
     }
 
     // MARK: - KeyedDecodingContainer
@@ -63,7 +61,7 @@ private struct _RowDecoder: Decoder {
         func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 { try decoder.integer(type, forKey: key) }
         func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 { try decoder.integer(type, forKey: key) }
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T: Decodable {
-            return try decoder.decode(type, forKey: key)
+            try decoder.decode(type, forKey: key)
         }
 
         func superDecoder() throws -> any Decoder { fatalError() }
@@ -81,7 +79,7 @@ private struct _RowDecoder: Decoder {
 
     @inline(__always)
     func null<K>(for key: K) -> Bool where K: CodingKey {
-        row[key.stringValue]?.isNull ?? true
+        row[key.stringValue] == nil
     }
 
     @inline(__always)
@@ -90,68 +88,55 @@ private struct _RowDecoder: Decoder {
     }
 
     @inline(__always)
+    func string<K>(forKey key: K) throws -> String where K: CodingKey {
+        try columnValue(String.self, forKey: key).string ?? ""
+    }
+
+    @inline(__always)
     func integer<T, K>(_ type: T.Type, forKey key: K) throws -> T where T: Numeric, K: CodingKey {
-        let value = try column(forKey: key)
-        guard let number = type.init(exactly: value.int64) else {
-            let message = "Parsed SQL integer <\(value)> does not fit in \(type)."
-            let context = DecodingError.Context(codingPath: [key], debugDescription: message)
-            throw DecodingError.dataCorrupted(context)
+        let value = try columnValue(type, forKey: key)
+        let int64 = value.int64
+        guard let number = type.init(exactly: int64) else {
+            throw DecodingError.dataCorrupted(.context([key], "Parsed SQL int64 <\(int64)> does not fit in \(type)."))
         }
         return number
     }
 
     @inline(__always)
     func floating<T, K>(_ type: T.Type, forKey key: K) throws -> T where T: BinaryFloatingPoint, K: CodingKey {
-        let value = try column(forKey: key)
-        guard let number = type.init(exactly: value.double) else {
-            let message = "Parsed SQL double <\(value)> does not fit in \(type)."
-            let context = DecodingError.Context(codingPath: [key], debugDescription: message)
-            throw DecodingError.dataCorrupted(context)
+        let value = try columnValue(type, forKey: key)
+        let double = value.double
+        guard let number = type.init(exactly: double) else {
+            throw DecodingError.dataCorrupted(.context([key], "Parsed SQL double <\(double)> does not fit in \(type)."))
         }
         return number
     }
 
     @inline(__always)
-    func string<K>(forKey key: K) throws -> String where K: CodingKey {
-        let value = try column(forKey: key)
-        guard let value = value.string else {
-            throw DecodingError.valueNotFound(String.self, .codingPath([key]))
-        }
-        return value
-    }
-
-    @inline(__always)
     func decode<T, K>(_ type: T.Type, forKey key: K) throws -> T where T: Decodable, K: CodingKey {
         if type == Data.self {
-            let value = try column(forKey: key)
-            guard let data = value.blob else {
-                throw DecodingError.valueNotFound(Data.self, .codingPath([key]))
-            }
+            let value = try columnValue(type, forKey: key)
+            let data = value.blob ?? Data()
             // swift-format-ignore: NeverForceUnwrap
             return data as! T
         }
-        let decoder = _ColumnDecoder(key: key, decoder: self)
+        let decoder = _ValueDecoder(key: key, decoder: self)
         return try type.init(from: decoder)
     }
 
     @inline(__always)
-    private func column<K>(forKey key: K) throws -> PreparedStatement.Column where K: CodingKey {
+    private func columnValue<T, K>(_ type: T.Type, forKey key: K) throws -> PreparedStatement.Value where K: CodingKey {
         guard let index = row.statement.columnIndexByName[key.stringValue] else {
-            let message = "Column index not found for key: \(key)"
-            let context = DecodingError.Context(codingPath: [key], debugDescription: message)
-            throw DecodingError.keyNotFound(key, context)
+            throw DecodingError.keyNotFound(key, .context([key], "Column index not found for key: \(key)"))
         }
-        return row[index]
+        guard let column = row[index] else {
+            throw DecodingError.valueNotFound(type, .context([key], "Column value not found for key: \(key)"))
+        }
+        return column
     }
 }
 
-private extension DecodingError.Context {
-    static func codingPath(_ path: [any CodingKey]) -> DecodingError.Context {
-        DecodingError.Context(codingPath: path, debugDescription: "")
-    }
-}
-
-private struct _ColumnDecoder: Decoder, SingleValueDecodingContainer {
+private struct _ValueDecoder: Decoder, SingleValueDecodingContainer {
     let key: any CodingKey
     let decoder: _RowDecoder
 
@@ -161,13 +146,11 @@ private struct _ColumnDecoder: Decoder, SingleValueDecodingContainer {
     var codingPath: [any CodingKey] { [key] }
 
     func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key: CodingKey {
-        let context = DecodingError.Context(codingPath: codingPath, debugDescription: "")
-        throw DecodingError.typeMismatch(PreparedStatement.Column.self, context)
+        throw DecodingError.typeMismatch(PreparedStatement.Value.self, .context(codingPath, ""))
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
-        let context = DecodingError.Context(codingPath: codingPath, debugDescription: "")
-        throw DecodingError.typeMismatch(PreparedStatement.Column.self, context)
+        throw DecodingError.typeMismatch(PreparedStatement.Value.self, .context(codingPath, ""))
     }
 
     func singleValueContainer() throws -> any SingleValueDecodingContainer {
@@ -192,4 +175,10 @@ private struct _ColumnDecoder: Decoder, SingleValueDecodingContainer {
     func decode(_ type: UInt32.Type) throws -> UInt32 { try decoder.integer(type, forKey: key) }
     func decode(_ type: UInt64.Type) throws -> UInt64 { try decoder.integer(type, forKey: key) }
     func decode<T>(_ type: T.Type) throws -> T where T: Decodable { try decoder.decode(type, forKey: key) }
+}
+
+private extension DecodingError.Context {
+    static func context(_ codingPath: [any CodingKey], _ message: String) -> DecodingError.Context {
+        DecodingError.Context(codingPath: codingPath, debugDescription: message)
+    }
 }

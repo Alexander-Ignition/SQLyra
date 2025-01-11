@@ -9,7 +9,7 @@
 
  [Documentation](https://alexander-ignition.github.io/SQLyra/documentation/sqlyra/)
 
- - Note: this readme file is available as Xcode playground in Playgrounds/README.playground
+ > this readme file is available as Xcode playground in Playgrounds/README.playground
 
  ## Open
 
@@ -26,21 +26,21 @@ let database = try Database.open(
 
  Create table for contacts with fields `id` and `name`.
  */
-try database.execute(
-    """
+let sql = """
     CREATE TABLE contacts(
         id INT PRIMARY KEY NOT NULL,
         name TEXT
     );
     """
-)
+try database.execute(sql)
 /*:
  ## Insert
 
  Insert new contacts Paul and John.
  */
-try database.execute("INSERT INTO contacts (id, name) VALUES (1, 'Paul');")
-try database.execute("INSERT INTO contacts (id, name) VALUES (2, 'John');")
+let insert = try database.prepare("INSERT INTO contacts (id, name) VALUES (?, ?);")
+try insert.bind(parameters: 1, "Paul").execute().reset()
+try insert.bind(parameters: 2, "John").execute()
 /*:
  ## Select
 
@@ -51,4 +51,5 @@ struct Contact: Codable {
     let name: String
 }
 
-let contacts = try database.prepare("SELECT * FROM contacts;").array(Contact.self)
+let select = try database.prepare("SELECT * FROM contacts;")
+let contacts = try select.array(Contact.self)

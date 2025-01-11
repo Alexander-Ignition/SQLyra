@@ -80,10 +80,10 @@ struct PreparedStatementTests {
         var contracts: [Contact] = []
         while let row = try select.row() {
             let contact = Contact(
-                id: Int(row.id.int64),
-                name: row.name.string ?? "",
-                rating: row.rating.double,
-                image: row.image.blob
+                id: row.id?.int ?? 0,
+                name: row.name?.string ?? "",
+                rating: row.rating?.double ?? 0,
+                image: row.image?.blob
             )
             contracts.append(contact)
         }

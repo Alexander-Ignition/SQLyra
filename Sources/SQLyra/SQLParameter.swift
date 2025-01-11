@@ -1,7 +1,7 @@
 import Foundation
 
 /// SQL parameters.
-public enum SQLParameter: Equatable {
+public enum SQLParameter: Equatable, Sendable {
     case null
 
     /// 64-bit signed integer.
