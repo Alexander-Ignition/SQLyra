@@ -214,7 +214,7 @@ struct RowDecoderTests {
     }
 
     struct DecodingErrorTests: Decodable {
-        let item: Int // invalid
+        let item: Int  // invalid
 
         @Test static func keyNotFound() throws {
             let repo = try ItemRepository(datatype: "ANY")
