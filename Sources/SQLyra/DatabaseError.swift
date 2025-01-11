@@ -7,7 +7,7 @@ public struct DatabaseError: Error, Equatable, Hashable {
     public let code: Int32
 
     /// A short error description.
-    public var message: String?
+    public let message: String?
 
     /// A complete sentence (or more) describing why the operation failed.
     public let details: String?
