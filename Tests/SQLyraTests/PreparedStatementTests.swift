@@ -94,6 +94,7 @@ struct PreparedStatementTests {
         #expect(contracts == expected)
     }
 
+    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     @Test func dataFrame() throws {
         let insert = try db.prepare(Contact.insert)
 
