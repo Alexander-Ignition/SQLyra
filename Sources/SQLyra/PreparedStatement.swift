@@ -149,6 +149,10 @@ extension PreparedStatement {
     public func columnName(at index: Int) -> String? {
         sqlite3_column_name(stmt, Int32(index)).string
     }
+
+    func columnDeclaration(at index: Int) -> String? {
+        sqlite3_column_decltype(stmt, Int32(index)).string
+    }
 }
 
 // MARK: - Result values from a Query
