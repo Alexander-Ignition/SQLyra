@@ -53,3 +53,26 @@ struct Contact: Codable {
 
 let select = try database.prepare("SELECT * FROM contacts;")
 let contacts = try select.array(Contact.self)
+/*:
+ ## DataFrame
+
+ The [DataFrame](https://developer.apple.com/documentation/tabulardata/dataframe) from the [TabularData](https://developer.apple.com/documentation/tabulardata) framework is supported.
+
+ It can help to print the table.
+ */
+let df = try database.prepare("SELECT * FROM contacts;").dataFrame()
+print(df)
+/*:
+ ```
+ ┏━━━┳━━━━━━━┳━━━━━━━━━━┓
+ ┃   ┃ id    ┃ name     ┃
+ ┃   ┃ <Int> ┃ <String> ┃
+ ┡━━━╇━━━━━━━╇━━━━━━━━━━┩
+ │ 0 │     1 │ Paul     │
+ │ 1 │     2 │ John     │
+ └───┴───────┴──────────┘
+ ```
+ ## License
+
+ MIT
+ */

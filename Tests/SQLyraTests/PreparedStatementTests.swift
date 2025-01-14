@@ -93,4 +93,25 @@ struct PreparedStatementTests {
         ]
         #expect(contracts == expected)
     }
+
+    @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
+    @Test func dataFrame() throws {
+        let insert = try db.prepare(Contact.insert)
+
+        try insert.bind(parameters: 5, "A").execute().reset()
+        try insert.bind(parameters: 6, "B").execute()
+
+        let df = try db.prepare("SELECT * FROM contacts;").dataFrame()
+        let expected = """
+            ┏━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┓
+            ┃   ┃ id    ┃ name     ┃ rating   ┃ image  ┃
+            ┃   ┃ <Int> ┃ <String> ┃ <Double> ┃ <Data> ┃
+            ┡━━━╇━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━┩
+            │ 0 │     5 │ A        │      nil │ nil    │
+            │ 1 │     6 │ B        │      nil │ nil    │
+            └───┴───────┴──────────┴──────────┴────────┘
+            2 rows, 4 columns
+            """
+        #expect(df.description == expected + "\n")
+    }
 }
