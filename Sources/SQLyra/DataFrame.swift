@@ -54,10 +54,10 @@ extension PreparedStatement {
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 public struct ColumnValueTransformer: Sendable {
-    public static let string = ColumnValueTransformer(transform: \.string)
-    public static let int = ColumnValueTransformer(transform: \.int)
-    public static let double = ColumnValueTransformer(transform: \.double)
-    public static let blob = ColumnValueTransformer(transform: \.blob)
+    public static let string = ColumnValueTransformer { $0.string }
+    public static let int = ColumnValueTransformer { $0.int }
+    public static let double = ColumnValueTransformer { $0.double }
+    public static let blob = ColumnValueTransformer { $0.blob }
 
     public static let defaults: [String: ColumnValueTransformer] = [
         "INT": .int,
