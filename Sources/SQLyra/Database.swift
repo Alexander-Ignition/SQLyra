@@ -133,6 +133,6 @@ public final class Database: DatabaseHandle {
     public func prepare(_ sql: String) throws -> PreparedStatement {
         var stmt: OpaquePointer!
         try check(sqlite3_prepare_v2(db, sql, -1, &stmt, nil))
-        return PreparedStatement(stmt: stmt)
+        return PreparedStatement(stmt: stmt, database: self)
     }
 }

@@ -114,4 +114,18 @@ struct PreparedStatementTests {
             """
         #expect(df.description == expected + "\n")
     }
+
+    @Test static func retainDatabase() throws {
+        weak var db: Database?
+        var statement: PreparedStatement?
+        do {
+            let suite = try PreparedStatementTests()
+            db = suite.db
+            statement = try suite.db.prepare("SELECT * FROM contacts;")
+        }
+        try #require(statement != nil)
+        #expect(db != nil)
+        statement = nil
+        #expect(db == nil)
+    }
 }
