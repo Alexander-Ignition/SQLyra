@@ -8,7 +8,7 @@ on:
     paths:
       - 'Sources/**'
       - 'Tests/**'
-      - '.github/workflows/**'
+      - '.github/workflows/test.yml'
       - 'Package.swift'
       - 'Makefile'
   pull_request:
