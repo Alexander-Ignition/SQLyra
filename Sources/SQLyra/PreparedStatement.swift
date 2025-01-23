@@ -7,6 +7,7 @@ import SQLite3
 /// Or, in other words, these routines are constructors for the prepared statement object.
 public final class PreparedStatement: DatabaseHandle {
     let stmt: OpaquePointer
+    let database: Database  // release database after all statements
 
     /// Find the database handle of a prepared statement.
     var db: OpaquePointer! { sqlite3_db_handle(stmt) }
@@ -17,8 +18,9 @@ public final class PreparedStatement: DatabaseHandle {
         }
     )
 
-    init(stmt: OpaquePointer) {
+    init(stmt: OpaquePointer, database: Database) {
         self.stmt = stmt
+        self.database = database
     }
 
     deinit {
