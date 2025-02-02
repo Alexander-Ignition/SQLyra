@@ -8,7 +8,7 @@ struct Contact: Codable, Equatable, Sendable {
     let rating: Double?
     let image: Data?
 
-    static let table = "CREATE TABLE contacts (id INT, name TEXT, rating FLOAT, image BLOB);"
+    static let table = "CREATE TABLE contacts (id INT, name TEXT, rating REAL, image BLOB) STRICT;"
     static let insert = "INSERT INTO contacts (id, name, rating, image) VALUES (:id, :name, :rating, :image)"
 }
 
@@ -71,7 +71,7 @@ struct PreparedStatementTests {
     @Test func columns() throws {
         let insert = try db.prepare(Contact.insert)
 
-        try insert.bind(parameters: 5, "A", 2.0, .null).execute().reset()
+        try insert.bind(parameters: 5, "A", 2.0, .null).execute()
         try insert.bind(parameters: 6, "B", .null, .blob(Data("123".utf8))).execute()
 
         let select = try db.prepare("SELECT * FROM contacts;")
@@ -94,11 +94,37 @@ struct PreparedStatementTests {
         #expect(contracts == expected)
     }
 
+    @Test func decode() throws {
+        let insert = try db.prepare(Contact.insert)
+
+        try insert.bind(parameters: 5, "A", 2.0, .null).execute()
+        try insert.bind(parameters: 6, "B", .null, .blob(Data("123".utf8))).execute()
+
+        let select = try db.prepare("SELECT * FROM contacts;")
+        let contracts = try select.array(Contact.self)
+
+        let expected = [
+            Contact(id: 5, name: "A", rating: 2.0, image: nil),
+            Contact(id: 6, name: "B", rating: nil, image: Data("123".utf8)),
+        ]
+        #expect(contracts == expected)
+    }
+
+    @Test func execute() throws {
+        let insert = try db.prepare(Contact.insert)
+
+        try insert.bind(name: ":id", parameter: "invalid")
+        #expect(throws: DatabaseError.self) { try insert.execute() }
+
+        try insert.bind(name: ":id", parameter: 4)
+        #expect(throws: Never.self) { try insert.execute() }
+    }
+
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     @Test func dataFrame() throws {
         let insert = try db.prepare(Contact.insert)
 
-        try insert.bind(parameters: 5, "A").execute().reset()
+        try insert.bind(parameters: 5, "A").execute()
         try insert.bind(parameters: 6, "B").execute()
 
         let df = try db.prepare("SELECT * FROM contacts;").dataFrame()
