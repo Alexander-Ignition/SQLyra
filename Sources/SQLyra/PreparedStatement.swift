@@ -33,7 +33,8 @@ public final class PreparedStatement: DatabaseHandle {
     /// - Throws: ``DatabaseError``
     @discardableResult
     public func execute() throws -> PreparedStatement {
-        try check(sqlite3_step(stmt), SQLITE_DONE)
+        defer { _reset() }
+        return try check(sqlite3_step(stmt), SQLITE_DONE)
     }
 
     /// Reset the prepared statement.
@@ -46,6 +47,11 @@ public final class PreparedStatement: DatabaseHandle {
     @discardableResult
     public func reset() throws -> PreparedStatement {
         try check(sqlite3_reset(stmt))
+    }
+
+    /// clear error state and prepare for reuse
+    func _reset() {
+        sqlite3_reset(stmt)
     }
 }
 
@@ -176,6 +182,7 @@ extension PreparedStatement {
     }
 
     public func array<T>(_ type: T.Type, using decoder: RowDecoder) throws -> [T] where T: Decodable {
+        defer { _reset() }
         var array: [T] = []
         while let row = try row() {
             let value = try row.decode(type, using: decoder)

@@ -39,7 +39,7 @@ try database.execute(sql)
  Insert new contacts Paul and John.
  */
 let insert = try database.prepare("INSERT INTO contacts (id, name) VALUES (?, ?);")
-try insert.bind(parameters: 1, "Paul").execute().reset()
+try insert.bind(parameters: 1, "Paul").execute()
 try insert.bind(parameters: 2, "John").execute()
 /*:
  ## Select
@@ -48,11 +48,12 @@ try insert.bind(parameters: 2, "John").execute()
  */
 struct Contact: Codable {
     let id: Int
-    let name: String
+    let name: String?
 }
 
 let select = try database.prepare("SELECT * FROM contacts;")
 let contacts = try select.array(Contact.self)
+print(contacts)
 /*:
  ## DataFrame
 
@@ -60,7 +61,7 @@ let contacts = try select.array(Contact.self)
 
  It can help to print the table.
  */
-let df = try database.prepare("SELECT * FROM contacts;").dataFrame()
+let df = try select.dataFrame()
 print(df)
 /*:
  ```

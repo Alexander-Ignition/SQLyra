@@ -38,7 +38,7 @@ try database.execute(sql)
 Insert new contacts Paul and John.
 ```swift
 let insert = try database.prepare("INSERT INTO contacts (id, name) VALUES (?, ?);")
-try insert.bind(parameters: 1, "Paul").execute().reset()
+try insert.bind(parameters: 1, "Paul").execute()
 try insert.bind(parameters: 2, "John").execute()
 ```
 ## Select
@@ -47,11 +47,12 @@ Select all contacts from database.
 ```swift
 struct Contact: Codable {
     let id: Int
-    let name: String
+    let name: String?
 }
 
 let select = try database.prepare("SELECT * FROM contacts;")
 let contacts = try select.array(Contact.self)
+print(contacts)
 ```
 ## DataFrame
 
@@ -59,7 +60,7 @@ The [DataFrame](https://developer.apple.com/documentation/tabulardata/dataframe)
 
 It can help to print the table.
 ```swift
-let df = try database.prepare("SELECT * FROM contacts;").dataFrame()
+let df = try select.dataFrame()
 print(df)
 ```
 ```

@@ -41,6 +41,7 @@ extension PreparedStatement {
         }
         var df = DataFrame(columns: columns)
         var count = 0
+        defer { _reset() }
         while let row = try row() {
             df.appendEmptyRow()
             for index in (0..<columnCount) {
