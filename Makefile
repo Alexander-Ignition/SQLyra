@@ -2,7 +2,7 @@ TARGET_NAME = SQLyra
 OUTPUD_DIR = ./Build
 DERIVED_DATA_PATH = $(OUTPUD_DIR)/DerivedData
 
-.PHONY: clean lint format test test-macos test-ios
+.PHONY: clean lint format test test-macos test-ios test-linux
 
 clean:
 	swift package clean
@@ -37,6 +37,13 @@ $(OUTPUD_DIR)/test-macos.xcresult:
 $(OUTPUD_DIR)/test-ios.xcresult:
 	$(XCODEBUILD_TEST) -destination 'platform=iOS Simulator,name=iPhone 16' -resultBundlePath $@
 	$(XCCOV) --report $@
+
+# Apple Containerization or Docker
+CONTAINER ?= container
+
+test-linux:
+	$(CONTAINER) run --rm -v "$(PWD):/src" -w /src swift:latest /bin/bash -c \
+	"apt-get update && apt-get install -y libsqlite3-dev && swift test"
 
 # MARK: - DocC
 

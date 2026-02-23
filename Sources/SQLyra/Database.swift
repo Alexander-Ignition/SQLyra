@@ -1,7 +1,7 @@
 import SQLite3
 
 /// SQLite database.
-public final class Database: DatabaseHandle {
+public final class Database {
     /// Database open options.
     public struct OpenOptions: OptionSet, Sendable {
         /// SQLite flags for opening a database connection.

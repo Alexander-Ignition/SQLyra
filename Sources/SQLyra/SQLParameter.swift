@@ -1,4 +1,8 @@
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 import Foundation
+#else
+import FoundationEssentials
+#endif
 
 /// SQL parameters.
 public enum SQLParameter: Equatable, Sendable {

@@ -1,6 +1,11 @@
-import Foundation
 import SQLyra
 import Testing
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Foundation
+#else
+import FoundationEssentials
+#endif
 
 struct Contact: Codable, Equatable, Sendable {
     let id: Int
@@ -23,9 +28,12 @@ struct PreparedStatementTests {
     @Test func sql() throws {
         let insert = try db.prepare("INSERT INTO contacts (id, name) VALUES (:id, :name)")
         #expect(insert.sql == "INSERT INTO contacts (id, name) VALUES (:id, :name)")
+
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         if #available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *) {
             #expect(insert.normalizedSQL == "INSERT INTO contacts(id,name)VALUES(?,?);")
         }
+        #endif
         #expect(insert.expandedSQL == "INSERT INTO contacts (id, name) VALUES (NULL, NULL)")
 
         try insert.bind(name: ":name", parameter: "John")
@@ -120,6 +128,7 @@ struct PreparedStatementTests {
         #expect(throws: Never.self) { try insert.execute() }
     }
 
+    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     @Test func dataFrame() throws {
         let insert = try db.prepare(Contact.insert)
@@ -140,6 +149,7 @@ struct PreparedStatementTests {
             """
         #expect(df.description == expected + "\n")
     }
+    #endif
 
     @Test static func retainDatabase() throws {
         weak var db: Database?
