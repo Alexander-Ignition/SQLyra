@@ -97,7 +97,7 @@ public final class Database {
     ///   ``Database/OpenOptions/readonly``, ``Database/OpenOptions/readwrite``, ``Database/OpenOptions/create``.
     /// - Returns: A new database connection.
     /// - Throws: ``DatabaseError``
-    public static func open(at filename: String, options: OpenOptions = []) throws -> Database {
+    public static func open(at filename: String, options: OpenOptions = []) throws(DatabaseError) -> Database {
         let database = Database()
         let code = sqlite3_open_v2(filename, &database.db, options.rawValue, nil)
         return try database.check(code)
@@ -118,7 +118,7 @@ public final class Database {
     ///
     /// - Parameter sql: UTF-8 encoded, semicolon-separate SQL statements to be evaluated.
     /// - Throws: ``DatabaseError``
-    public func execute(_ sql: String) throws {
+    public func execute(_ sql: String) throws(DatabaseError) {
         try check(sqlite3_exec(db, sql, nil, nil, nil))
     }
 
@@ -130,7 +130,7 @@ public final class Database {
     /// - Parameter sql: The statement to be compiled, encoded as UTF-8.
     /// - Returns: A compiled prepared statement that can be executed.
     /// - Throws: ``DatabaseError``
-    public func prepare(_ sql: String) throws -> PreparedStatement {
+    public func prepare(_ sql: String) throws(DatabaseError) -> PreparedStatement {
         var stmt: OpaquePointer!
         try check(sqlite3_prepare_v2(db, sql, -1, &stmt, nil))
         return PreparedStatement(stmt: stmt, database: self)

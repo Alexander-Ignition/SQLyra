@@ -23,12 +23,16 @@ public struct DatabaseError: Error, Equatable, Hashable {
 }
 
 extension Database {
-    var errorMessage: String? { sqlite3_errmsg(db).string }
+    private var errorMessage: String? { sqlite3_errmsg(db).string }
+
+    func error(code: Int32) -> DatabaseError {
+        DatabaseError(code: code, message: errorMessage)
+    }
 
     @discardableResult
-    func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws -> Database {
+    func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws(DatabaseError) -> Database {
         guard code == success else {
-            throw DatabaseError(code: code, message: errorMessage)
+            throw error(code: code)
         }
         return self
     }

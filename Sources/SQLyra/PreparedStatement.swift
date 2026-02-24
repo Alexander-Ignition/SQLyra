@@ -30,7 +30,7 @@ public final class PreparedStatement {
         assert(code == SQLITE_OK, "sqlite3_finalize(): \(code)")
     }
 
-    private func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws -> PreparedStatement {
+    private func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws(DatabaseError) -> PreparedStatement {
         try database.check(code, success)
         return self
     }
@@ -39,7 +39,7 @@ public final class PreparedStatement {
     ///
     /// - Throws: ``DatabaseError``
     @discardableResult
-    public func execute() throws -> PreparedStatement {
+    public func execute() throws(DatabaseError) -> PreparedStatement {
         defer { _reset() }
         return try check(sqlite3_step(stmt), SQLITE_DONE)
     }
@@ -52,7 +52,7 @@ public final class PreparedStatement {
     ///
     /// - Throws: ``DatabaseError``
     @discardableResult
-    public func reset() throws -> PreparedStatement {
+    public func reset() throws(DatabaseError) -> PreparedStatement {
         try check(sqlite3_reset(stmt))
     }
 
@@ -108,12 +108,12 @@ private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.sel
 
 extension PreparedStatement {
     @discardableResult
-    public func bind(name: String, parameter: SQLParameter) throws -> PreparedStatement {
+    public func bind(name: String, parameter: SQLParameter) throws(DatabaseError) -> PreparedStatement {
         try bind(index: parameterIndex(for: name), parameter: parameter)
     }
 
     @discardableResult
-    public func bind(parameters: SQLParameter...) throws -> PreparedStatement {
+    public func bind(parameters: SQLParameter...) throws(DatabaseError) -> PreparedStatement {
         for (index, parameter) in parameters.enumerated() {
             try bind(index: index + 1, parameter: parameter)
         }
@@ -121,7 +121,7 @@ extension PreparedStatement {
     }
 
     @discardableResult
-    public func bind(index: Int, parameter: SQLParameter) throws -> PreparedStatement {
+    public func bind(index: Int, parameter: SQLParameter) throws(DatabaseError) -> PreparedStatement {
         let index = Int32(index)
         let code =
             switch parameter {
@@ -148,7 +148,7 @@ extension PreparedStatement {
     ///
     /// - Throws: ``DatabaseError``
     @discardableResult
-    public func clearBindings() throws -> PreparedStatement {
+    public func clearBindings() throws(DatabaseError) -> PreparedStatement {
         try check(sqlite3_clear_bindings(stmt))
     }
 }
@@ -178,11 +178,11 @@ extension PreparedStatement {
     /// The new row of data is ready for processing.
     ///
     /// - Throws: ``DatabaseError``
-    public func row() throws -> Row? {
+    public func row() throws(DatabaseError) -> Row? {
         switch sqlite3_step(stmt) {
         case SQLITE_DONE: nil
         case SQLITE_ROW: Row(statement: self)
-        case let code: throw DatabaseError(code: code, message: database.errorMessage)
+        case let code: throw database.error(code: code)
         }
     }
 

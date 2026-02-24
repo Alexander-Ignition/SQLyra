@@ -49,7 +49,7 @@ struct DatabaseTests {
         do {
             let database = try Database.open(at: path, options: [])
             Issue.record("no error \(database)")
-        } catch let error as DatabaseError {
+        } catch let error {  // DatabaseError
             #expect(error.code == SQLITE_MISUSE)
         }
     }
