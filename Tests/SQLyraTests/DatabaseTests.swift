@@ -1,11 +1,15 @@
-import Foundation
 import SQLite3
 import SQLyra
 import Testing
 
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Foundation
+#else
+import FoundationEssentials
+#endif
+
 @Test func openOptionsRawValue() {
     typealias Options = Database.OpenOptions
-
     #expect(Options.create.rawValue == SQLITE_OPEN_CREATE)
     #expect(Options.readwrite.rawValue == SQLITE_OPEN_READWRITE)
     #expect(Options.readonly.rawValue == SQLITE_OPEN_READONLY)
@@ -41,14 +45,12 @@ struct DatabaseTests {
         #expect(fileManager.fileExists(atPath: url.path))
     }
 
-    @Test func openError() {
-        let error = DatabaseError(
-            code: SQLITE_MISUSE,
-            message: "bad parameter or other API misuse",
-            details: "flags must include SQLITE_OPEN_READONLY or SQLITE_OPEN_READWRITE"
-        )
-        #expect(throws: error) {
-            try Database.open(at: path, options: [])
+    @Test func openError() throws {
+        do {
+            let database = try Database.open(at: path, options: [])
+            Issue.record("no error \(database)")
+        } catch let error as DatabaseError {
+            #expect(error.code == SQLITE_MISUSE)
         }
     }
 

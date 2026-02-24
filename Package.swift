@@ -23,8 +23,14 @@ let package = Package(
     targets: [
         .target(
             name: "SQLyra",
-            dependencies: [],
-            swiftSettings: swiftSettings
+            dependencies: [
+                .target(name: "SQLite3", condition: .when(platforms: [.linux]))
+            ],
+            swiftSettings: swiftSettings,
+        ),
+        .systemLibrary(
+            name: "SQLite3",
+            pkgConfig: "sqlite3"
         ),
         .testTarget(
             name: "SQLyraTests",

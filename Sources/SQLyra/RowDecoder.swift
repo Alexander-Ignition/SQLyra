@@ -1,5 +1,10 @@
-import Foundation
 import SQLite3
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Foundation
+#else
+import FoundationEssentials
+#endif
 
 /// An object that decodes instances of a data type from ``PreparedStatement``.
 public final class RowDecoder {

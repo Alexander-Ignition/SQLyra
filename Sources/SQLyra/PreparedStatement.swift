@@ -1,16 +1,18 @@
-import Foundation
 import SQLite3
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Foundation
+#else
+import FoundationEssentials
+#endif
 
 /// Compiled SQL statement.
 ///
 /// To execute an SQL statement, it must first be compiled into a byte-code program using one of these routines.
 /// Or, in other words, these routines are constructors for the prepared statement object.
-public final class PreparedStatement: DatabaseHandle {
+public final class PreparedStatement {
     let stmt: OpaquePointer
     let database: Database  // release database after all statements
-
-    /// Find the database handle of a prepared statement.
-    var db: OpaquePointer! { sqlite3_db_handle(stmt) }
 
     private(set) lazy var columnIndexByName = [String: Int](
         uniqueKeysWithValues: (0..<columnCount).compactMap { index in
@@ -26,6 +28,11 @@ public final class PreparedStatement: DatabaseHandle {
     deinit {
         let code = sqlite3_finalize(stmt)
         assert(code == SQLITE_OK, "sqlite3_finalize(): \(code)")
+    }
+
+    private func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws -> PreparedStatement {
+        try database.check(code, success)
+        return self
     }
 
     /// Evaluate an SQL statement.
@@ -61,12 +68,14 @@ extension PreparedStatement {
     /// SQL text used to create prepared statement.
     public var sql: String { sqlite3_sql(stmt).string ?? "" }
 
+    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
     /// UTF-8 string containing the normalized SQL text of prepared statement.
     ///
     /// The semantics used to normalize a SQL statement are unspecified and subject to change.
     /// At a minimum, literal values will be replaced with suitable placeholders.
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public var normalizedSQL: String { sqlite3_normalized_sql(stmt).string ?? "" }
+    #endif
 
     /// SQL text of prepared statement with bound parameters expanded.
     public var expandedSQL: String {
@@ -173,7 +182,7 @@ extension PreparedStatement {
         switch sqlite3_step(stmt) {
         case SQLITE_DONE: nil
         case SQLITE_ROW: Row(statement: self)
-        case let code: throw DatabaseError(code: code, db: db)
+        case let code: throw DatabaseError(code: code, message: database.errorMessage)
         }
     }
 

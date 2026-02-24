@@ -1,6 +1,11 @@
-import Foundation
 import SQLyra
 import Testing
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Foundation
+#else
+import FoundationEssentials
+#endif
 
 struct RowDecoderTests {
     struct SignedIntegers {
