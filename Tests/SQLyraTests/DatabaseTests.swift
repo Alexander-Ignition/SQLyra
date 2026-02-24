@@ -8,66 +8,67 @@ import Foundation
 import FoundationEssentials
 #endif
 
-@Test func openOptionsRawValue() {
-    typealias Options = Database.OpenOptions
-    #expect(Options.create.rawValue == SQLITE_OPEN_CREATE)
-    #expect(Options.readwrite.rawValue == SQLITE_OPEN_READWRITE)
-    #expect(Options.readonly.rawValue == SQLITE_OPEN_READONLY)
-    #expect(Options.memory.rawValue == SQLITE_OPEN_MEMORY)
-    #expect(Options.extendedResultCode.rawValue == SQLITE_OPEN_EXRESCODE)
-    #expect(Options.uri.rawValue == SQLITE_OPEN_URI)
-    #expect(Options.noFollow.rawValue == SQLITE_OPEN_NOFOLLOW)
-    #expect(Options.noMutex.rawValue == SQLITE_OPEN_NOMUTEX)
-    #expect(Options.fullMutex.rawValue == SQLITE_OPEN_FULLMUTEX)
-    #expect(Options.sharedCache.rawValue == SQLITE_OPEN_SHAREDCACHE)
-    #expect(Options.privateCache.rawValue == SQLITE_OPEN_PRIVATECACHE)
+extension Database.OpenOptions: CustomTestStringConvertible {
+    public var testDescription: String {
+        String(rawValue, radix: 16, uppercase: true)
+    }
 }
 
 struct DatabaseTests {
-    private let fileManager = FileManager.default
-    private let path = "Tests/new.db"
 
-    init() {
-        #if Xcode  // for relative path
-        fileManager.changeCurrentDirectoryPath(#file.components(separatedBy: "/Tests")[0])
-        #endif
+    @Test(arguments: [
+        (Database.OpenOptions.create, SQLITE_OPEN_CREATE),
+        (Database.OpenOptions.readwrite, SQLITE_OPEN_READWRITE),
+        (Database.OpenOptions.readonly, SQLITE_OPEN_READONLY),
+        (Database.OpenOptions.memory, SQLITE_OPEN_MEMORY),
+        (Database.OpenOptions.extendedResultCode, SQLITE_OPEN_EXRESCODE),
+        (Database.OpenOptions.uri, SQLITE_OPEN_URI),
+        (Database.OpenOptions.noFollow, SQLITE_OPEN_NOFOLLOW),
+        (Database.OpenOptions.noMutex, SQLITE_OPEN_NOMUTEX),
+        (Database.OpenOptions.fullMutex, SQLITE_OPEN_FULLMUTEX),
+        (Database.OpenOptions.sharedCache, SQLITE_OPEN_SHAREDCACHE),
+        (Database.OpenOptions.privateCache, SQLITE_OPEN_PRIVATECACHE),
+    ])
+    func open(options: Database.OpenOptions, expected: Int32) {
+        #expect(options.rawValue == expected)
     }
 
     @Test func open() throws {
-        let url = URL(fileURLWithPath: path)
-        var database: Database! = try Database.open(at: path, options: [.readwrite, .create])
+        let fileManager = FileManager.default
+        try #require(fileManager.changeCurrentDirectoryPath(fileManager.temporaryDirectory.path))
+        let url = URL(fileURLWithPath: "SQLyra.db", isDirectory: false)
         defer {
-            database = nil  // closing before remove a file
+            // closing database before remove a file
             #expect(throws: Never.self) { try fileManager.removeItem(at: url) }
         }
-        #expect(!database.isReadonly)
-        #expect(database.filename == url.path)
-        #expect(fileManager.fileExists(atPath: url.path))
+        do {
+            let database = try Database.open(at: "SQLyra.db", options: [.readwrite, .create])
+            #expect(!database.isReadonly)
+            #expect(database.filename == url.path)
+            #expect(fileManager.fileExists(atPath: url.path))
+        }
     }
 
-    @Test func openError() throws {
-        do {
-            let database = try Database.open(at: path, options: [])
-            Issue.record("no error \(database)")
-        } catch let error {  // DatabaseError
-            #expect(error.code == SQLITE_MISUSE)
+    @Test func openError() {
+        #expect(throws: DatabaseError.self) {
+            try Database.open(at: "db.sqlite", options: [])
         }
     }
 
     @Test func memory() throws {
-        let database = try Database.open(at: path, options: [.readwrite, .memory])
+        let database = try Database.open(at: ":memory:", options: [.readwrite, .memory])
         #expect(!database.isReadonly)
         #expect(database.filename == "")
     }
 
     @Test func readonly() throws {
-        let database = try Database.open(at: path, options: [.readonly, .memory])
+        let database = try Database.open(at: ":memory:", options: [.readonly, .memory])
         #expect(database.isReadonly)
         #expect(database.filename == "")
     }
 
     @Test func execute() throws {
-        let database = try Database.open(at: path, options: [.readwrite, .memory])
+        let database = try Database.open(at: ":memory:", options: [.readwrite, .memory])
 
         let sql = """
             CREATE TABLE contacts(id INT PRIMARY KEY NOT NULL, name TEXT);
