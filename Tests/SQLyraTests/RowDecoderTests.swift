@@ -223,9 +223,8 @@ struct RowDecoderTests {
 
         @Test static func keyNotFound() throws {
             let repo = try ItemRepository(datatype: "ANY")
-            let row = try #require(try repo.select(.int64(1)).row())
             #expect {
-                try row.decode(DecodingErrorTests.self)
+                try try repo.select(.int64(1)).row()?.decode(DecodingErrorTests.self)
             } throws: { error in
                 guard case .keyNotFound(let key, let context) = error as? DecodingError else {
                     return false
@@ -245,16 +244,16 @@ struct RowDecoderTests {
                 return context.codingPath.isEmpty && context.debugDescription == "" && context.underlyingError == nil
             }
             let repo = try ItemRepository(datatype: "ANY")
-            let row = try #require(try repo.select(.int64(1)).row())
-            #expect(performing: { try row.decode(Int.self) }, throws: errorMatcher)
-            #expect(performing: { try row.decode([Int].self) }, throws: errorMatcher)
+            let row = try repo.select(.int64(1)).row()
+            #expect(performing: { try row?.decode(Int.self) }, throws: errorMatcher)
+            #expect(performing: { try row?.decode([Int].self) }, throws: errorMatcher)
         }
 
         @Test static func valueNotFound() throws {
             let repo = try ItemRepository(datatype: "ANY")
-            let row = try #require(try repo.select(.null).row())
+            let row = try repo.select(.null).row()
             #expect {
-                try row.decode(Single<Int8>.self)
+                try row?.decode(Single<Int8>.self)
             } throws: { error in
                 guard case .valueNotFound(let type, let context) = error as? DecodingError else {
                     return false
@@ -284,13 +283,13 @@ extension DecodableValueSuite {
     ) throws {
         let repo = try ItemRepository(datatype: "ANY")
         let select = try repo.select(parameter)
-        let row = try #require(try select.row(), sourceLocation: sourceLocation)
+        let row = try select.row()
 
-        let keyed = try row.decode(Self.self)
-        #expect(keyed.value == expected, sourceLocation: sourceLocation)
+        let keyed = try row?.decode(Self.self)
+        #expect(keyed?.value == expected, sourceLocation: sourceLocation)
 
-        let single = try row.decode(Single<Value>.self)
-        #expect(single.value == expected, sourceLocation: sourceLocation)
+        let single = try row?.decode(Single<Value>.self)
+        #expect(single?.value == expected, sourceLocation: sourceLocation)
 
         #expect(try select.row() == nil, sourceLocation: sourceLocation)
     }
@@ -301,9 +300,9 @@ extension DecodableValueSuite {
         sourceLocation: SourceLocation = #_sourceLocation
     ) throws {
         let repo = try ItemRepository(datatype: "ANY")
-        let row = try #require(try repo.select(parameter).row(), sourceLocation: sourceLocation)
+        let row = try repo.select(parameter).row()
         #expect(sourceLocation: sourceLocation) {
-            try row.decode(Self.self)
+            try row?.decode(Self.self)
         } throws: { error in
             guard case .dataCorrupted(let context) = error as? DecodingError else {
                 return false

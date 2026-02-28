@@ -201,62 +201,73 @@ extension PreparedStatement {
     }
 
     @dynamicMemberLookup
-    public struct Row {
+    public struct Row: ~Copyable {
         let statement: PreparedStatement
 
         public subscript(dynamicMember name: String) -> Value? {
             self[name]
         }
 
-        public subscript(name: String) -> Value? {
-            statement.columnIndexByName[name].flatMap { self[$0] }
+        public subscript(columnName: String) -> Value? {
+            statement.columnIndexByName[columnName].flatMap { self[$0] }
         }
 
-        public subscript(index: Int) -> Value? {
-            if sqlite3_column_type(statement.stmt, Int32(index)) == SQLITE_NULL {
-                return nil
-            }
-            return Value(index: Int32(index), statement: statement)
+        public subscript(columnIndex: Int) -> Value? {
+            statement.value(at: columnIndex)
         }
 
-        public func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
-            try decode(type, using: RowDecoder.default)
-        }
-
-        public func decode<T>(_ type: T.Type, using decoder: RowDecoder) throws -> T where T: Decodable {
-            try decoder.decode(type, from: self)
+        public func decode<T>(_ type: T.Type, using decoder: RowDecoder? = nil) throws -> T where T: Decodable {
+            try (decoder ?? RowDecoder.default).decode(type, from: self)
         }
     }
 
+    func null(for columnName: String) -> Bool {
+        guard let columnIndex = columnIndexByName[columnName] else {
+            return true
+        }
+        return null(at: columnIndex)
+    }
+
+    private func null(at columnIndex: Int) -> Bool {
+        sqlite3_column_type(stmt, Int32(columnIndex)) == SQLITE_NULL
+    }
+
+    func value(at columnIndex: Int) -> Value? {
+        if null(at: columnIndex) {
+            return nil
+        }
+        return Value(columnIndex: Int32(columnIndex), statement: self)
+    }
+
     /// Result value from a query.
-    public struct Value {
-        let index: Int32
+    public struct Value: ~Copyable {
+        let columnIndex: Int32
         let statement: PreparedStatement
         private var stmt: OpaquePointer { statement.stmt }
 
         /// 64-bit INTEGER result.
-        public var int64: Int64 { sqlite3_column_int64(stmt, index) }
+        public var int64: Int64 { sqlite3_column_int64(stmt, columnIndex) }
 
         /// 32-bit INTEGER result.
-        public var int32: Int32 { sqlite3_column_int(stmt, index) }
+        public var int32: Int32 { sqlite3_column_int(stmt, columnIndex) }
 
         /// A platform-specific integer.
         public var int: Int { Int(int64) }
 
         /// 64-bit IEEE floating point number.
-        public var double: Double { sqlite3_column_double(stmt, index) }
+        public var double: Double { sqlite3_column_double(stmt, columnIndex) }
 
         /// Size of a BLOB or a UTF-8 TEXT result in bytes.
-        public var count: Int { Int(sqlite3_column_bytes(stmt, index)) }
+        public var count: Int { Int(sqlite3_column_bytes(stmt, columnIndex)) }
 
         /// UTF-8 TEXT result.
         public var string: String? {
-            sqlite3_column_text(stmt, index).flatMap { String(cString: $0) }
+            sqlite3_column_text(stmt, columnIndex).flatMap { String(cString: $0) }
         }
 
         /// BLOB result.
         public var blob: Data? {
-            sqlite3_column_blob(stmt, index).map { Data(bytes: $0, count: count) }
+            sqlite3_column_blob(stmt, columnIndex).map { Data(bytes: $0, count: count) }
         }
     }
 }
