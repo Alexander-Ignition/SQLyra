@@ -45,7 +45,9 @@ extension PreparedStatement {
         while let row = try row() {
             df.appendEmptyRow()
             for index in (0..<columnCount) {
-                df.rows[count][index] = row[index].flatMap { valueTransformers[index].transform($0) }
+                if let value = row[index] {
+                    df.rows[count][index] = valueTransformers[index].transform(value)
+                }
             }
             count += 1
         }
@@ -73,10 +75,10 @@ public struct ColumnValueTransformer: Sendable {
     @usableFromInline
     let column: @Sendable (_ name: String, _ capacity: Int) -> AnyColumn
     @usableFromInline
-    let transform: @Sendable (PreparedStatement.Value) -> Any?
+    let transform: @Sendable (borrowing PreparedStatement.Value) -> Any?
 
     @inlinable
-    public init<T>(transform: @escaping @Sendable (PreparedStatement.Value) -> T?) {
+    public init<T>(transform: @escaping @Sendable (borrowing PreparedStatement.Value) -> T?) {
         self.column = { name, capacity in
             TabularData.Column<T>(name: name, capacity: capacity).eraseToAnyColumn()
         }

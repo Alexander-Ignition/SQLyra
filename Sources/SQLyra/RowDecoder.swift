@@ -1,5 +1,3 @@
-import SQLite3
-
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 import Foundation
 #else
@@ -16,14 +14,22 @@ public final class RowDecoder {
     /// Creates a new, reusable row decoder.
     public init() {}
 
-    public func decode<T>(_ type: T.Type, from row: PreparedStatement.Row) throws -> T where T: Decodable {
-        let decoder = _RowDecoder(row: row, userInfo: userInfo)
+    public func decode<T>(
+        _ type: T.Type,
+        from row: borrowing PreparedStatement.Row
+    ) throws -> T where T: Decodable {
+        let decoder = _RowDecoder(statement: row.statement, userInfo: userInfo)
         return try type.init(from: decoder)
     }
 }
 
-private struct _RowDecoder: Decoder {
-    let row: PreparedStatement.Row
+private final class _RowDecoder: Decoder {
+    let statement: PreparedStatement
+
+    init(statement: PreparedStatement, userInfo: [CodingUserInfoKey: Any]) {
+        self.statement = statement
+        self.userInfo = userInfo
+    }
 
     // MARK: - Decoder
 
@@ -47,9 +53,9 @@ private struct _RowDecoder: Decoder {
     struct KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
         let decoder: _RowDecoder
         var codingPath: [any CodingKey] { decoder.codingPath }
-        var allKeys: [Key] { decoder.row.statement.columnIndexByName.keys.compactMap { Key(stringValue: $0) } }
+        var allKeys: [Key] { decoder.statement.columnIndexByName.keys.compactMap { Key(stringValue: $0) } }
 
-        func contains(_ key: Key) -> Bool { decoder.row.statement.columnIndexByName.keys.contains(key.stringValue) }
+        func contains(_ key: Key) -> Bool { decoder.statement.columnIndexByName.keys.contains(key.stringValue) }
         func decodeNil(forKey key: Key) throws -> Bool { decoder.null(for: key) }
         func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool { try decoder.bool(forKey: key) }
         func decode(_ type: String.Type, forKey key: Key) throws -> String { try decoder.string(forKey: key) }
@@ -84,7 +90,7 @@ private struct _RowDecoder: Decoder {
 
     @inline(__always)
     func null<K>(for key: K) -> Bool where K: CodingKey {
-        row[key.stringValue] == nil
+        statement.null(for: key.stringValue)
     }
 
     @inline(__always)
@@ -131,13 +137,13 @@ private struct _RowDecoder: Decoder {
 
     @inline(__always)
     private func columnValue<T, K>(_ type: T.Type, forKey key: K) throws -> PreparedStatement.Value where K: CodingKey {
-        guard let index = row.statement.columnIndexByName[key.stringValue] else {
+        guard let index = statement.columnIndexByName[key.stringValue] else {
             throw DecodingError.keyNotFound(key, .context([key], "Column index not found for key: \(key)"))
         }
-        guard let column = row[index] else {
+        guard let value = statement.value(at: index) else {
             throw DecodingError.valueNotFound(type, .context([key], "Column value not found for key: \(key)"))
         }
-        return column
+        return value
     }
 }
 
@@ -151,11 +157,11 @@ private struct _ValueDecoder: Decoder, SingleValueDecodingContainer {
     var codingPath: [any CodingKey] { [key] }
 
     func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key: CodingKey {
-        throw DecodingError.typeMismatch(PreparedStatement.Value.self, .context(codingPath, ""))
+        throw DecodingError.dataCorrupted(.context(codingPath, ""))
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
-        throw DecodingError.typeMismatch(PreparedStatement.Value.self, .context(codingPath, ""))
+        throw DecodingError.dataCorrupted(.context(codingPath, ""))
     }
 
     func singleValueContainer() throws -> any SingleValueDecodingContainer {

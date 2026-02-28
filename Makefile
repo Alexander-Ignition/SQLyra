@@ -27,16 +27,16 @@ test:
 test-macos: $(OUTPUD_DIR)/test-macos.xcresult
 test-ios: $(OUTPUD_DIR)/test-ios.xcresult
 
-XCODEBUILD_TEST = xcodebuild test -quiet -scheme $(TARGET_NAME)
-XCCOV = xcrun xccov view --files-for-target $(TARGET_NAME)
+XCODEBUILD_TEST = xcodebuild test -quiet -scheme $(TARGET_NAME) -resultBundlePath $@
+XCCOV = xcrun xccov view --files-for-target $(TARGET_NAME) --report $@
 
 $(OUTPUD_DIR)/test-macos.xcresult:
-	$(XCODEBUILD_TEST) -destination 'platform=macOS' -resultBundlePath $@
-	$(XCCOV) --report $@
+	$(XCODEBUILD_TEST) -destination 'platform=macOS'
+	$(XCCOV)
 
 $(OUTPUD_DIR)/test-ios.xcresult:
-	$(XCODEBUILD_TEST) -destination 'platform=iOS Simulator,name=iPhone 16' -resultBundlePath $@
-	$(XCCOV) --report $@
+	$(XCODEBUILD_TEST) -destination 'platform=iOS Simulator,name=iPhone 17'
+	$(XCCOV)
 
 # Apple Containerization or Docker
 CONTAINER ?= container
