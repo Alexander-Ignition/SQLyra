@@ -24,7 +24,7 @@ on:
 jobs:
   Apple:
     name: Test ${{ matrix.name }}
-    runs-on: macOS-latest
+    runs-on: macOS-26
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
         shell: bash
   SPM:
     name: Test with SPM
-    runs-on: macOS-latest
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
