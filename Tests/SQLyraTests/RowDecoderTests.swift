@@ -224,7 +224,7 @@ struct RowDecoderTests {
         @Test static func keyNotFound() throws {
             let repo = try ItemRepository(datatype: "ANY")
             #expect {
-                try try repo.select(.int64(1)).row()?.decode(DecodingErrorTests.self)
+                try repo.select(.int64(1)).row()?.decode(DecodingErrorTests.self)
             } throws: { error in
                 guard case .keyNotFound(let key, let context) = error as? DecodingError else {
                     return false
