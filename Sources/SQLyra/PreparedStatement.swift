@@ -205,14 +205,25 @@ extension PreparedStatement {
         let statement: PreparedStatement
 
         public subscript(dynamicMember name: String) -> Value? {
-            self[name]
+            value(for: name)
         }
 
         public subscript(columnName: String) -> Value? {
-            statement.columnIndexByName[columnName].flatMap { self[$0] }
+            value(for: columnName)
         }
 
         public subscript(columnIndex: Int) -> Value? {
+            statement.value(at: columnIndex)
+        }
+
+        public func value(for columnName: String) -> Value? {
+            guard let columnIndex = statement.columnIndexByName[columnName] else {
+                return nil
+            }
+            return value(at: columnIndex)
+        }
+
+        public func value(at columnIndex: Int) -> Value? {
             statement.value(at: columnIndex)
         }
 
