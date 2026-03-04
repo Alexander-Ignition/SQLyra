@@ -45,7 +45,7 @@ extension PreparedStatement {
         while let row = try row() {
             df.appendEmptyRow()
             for index in (0..<columnCount) {
-                if let value = row[index] {
+                if let value = row.value(at: index) {
                     df.rows[count][index] = valueTransformers[index].transform(value)
                 }
             }
