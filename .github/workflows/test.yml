@@ -38,7 +38,7 @@ jobs:
         shell: bash
   Snippets:
     name: Build and run snippets
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
