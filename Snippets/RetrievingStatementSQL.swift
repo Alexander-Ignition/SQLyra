@@ -1,3 +1,5 @@
+#if !os(Linux)
+
 // snippet.hide
 import SQLyra
 
@@ -16,3 +18,5 @@ let sql3 = statement.normalizedSQL  // INSERT INTO contacts(id,name)VALUES(?,?);
 precondition(sql1 == "INSERT INTO contacts (id, name) VALUES (?, ?);")
 precondition(sql2 == "INSERT INTO contacts (id, name) VALUES (1, 'Paul');")
 precondition(sql3 == "INSERT INTO contacts(id,name)VALUES(?,?);")
+
+#endif

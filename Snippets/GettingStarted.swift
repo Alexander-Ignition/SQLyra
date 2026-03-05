@@ -39,6 +39,5 @@ let insertSQL = insert.sql  // "INSERT INTO contacts (id, name) VALUES (?, ?);"
 // snippet.hide
 print("           SQL:", insertSQL)
 print("  Expanded SQL:", insert.expandedSQL)
-print("Normalized SQL:", insert.normalizedSQL)
 
 precondition(insertSQL == "INSERT INTO contacts (id, name) VALUES (?, ?);")
