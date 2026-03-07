@@ -58,6 +58,7 @@ learn:
 # MARK: - DocC
 
 build/docs:
+	mkdir -p $@
 	env SQLYRA_DOCС_PLUGIN=1 \
 		swift package --allow-writing-to-directory $@ \
 		generate-documentation \
