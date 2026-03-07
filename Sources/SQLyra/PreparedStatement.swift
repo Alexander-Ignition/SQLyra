@@ -10,6 +10,8 @@ import FoundationEssentials
 ///
 /// To execute an SQL statement, it must first be compiled into a byte-code program using one of these routines.
 /// Or, in other words, these routines are constructors for the prepared statement object.
+///
+/// [Prepared Statement Object](https://www.sqlite.org/c3ref/stmt.html)
 public final class PreparedStatement {
     let stmt: OpaquePointer
     let database: Database  // release database after all statements
@@ -97,15 +99,24 @@ extension PreparedStatement {
 // MARK: - SQL Parameters
 
 extension PreparedStatement {
-    /// [Number of SQL parameters](https://www.sqlite.org/c3ref/bind_parameter_count.html).
+    /// Number of SQL parameters.
+    ///
+    /// [Number Of SQL Parameters](https://www.sqlite.org/c3ref/bind_parameter_count.html).
+    /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public var parameterCount: Int { Int(sqlite3_bind_parameter_count(stmt)) }
 
+    /// Name of a SQL parameter.
+    ///
     /// [Name of a SQL parameter](https://www.sqlite.org/c3ref/bind_parameter_name.html).
+    /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public func parameterName(at index: Int) -> String? {
         sqlite3_bind_parameter_name(stmt, Int32(index)).map { String(cString: $0) }
     }
 
+    /// Index of a parameter with a given name
+    ///
     /// [Index of a parameter with a given name](https://www.sqlite.org/c3ref/bind_parameter_index.html).
+    /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public func parameterIndex(for name: String) -> Int {
         Int(sqlite3_bind_parameter_index(stmt, name))
     }

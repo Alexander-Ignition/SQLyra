@@ -37,12 +37,12 @@ jobs:
         run: swift test
         shell: bash
   Snippets:
-    name: Build and run snippets
+    name: Run snippets
     runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Build and run snippets
+      - name: Run snippets
         run: make run-snippets
         shell: bash
   Linux:
