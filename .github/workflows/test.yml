@@ -5,21 +5,9 @@ on:
       - main
     tags-ignore:
       - '**'
-    paths:
-      - 'Sources/**'
-      - 'Tests/**'
-      - '.github/workflows/test.yml'
-      - 'Package.swift'
-      - 'Makefile'
   pull_request:
     branches:
       - '**'
-    paths:
-      - 'Sources/**'
-      - 'Tests/**'
-      - '.github/workflows/**'
-      - 'Package.swift'
-      - 'Makefile'
 
 jobs:
   Apple:
@@ -30,9 +18,9 @@ jobs:
       matrix:
         include:
           - name: macOS
-            target: test-macos
+            target: build/test-macos.xcresult
           - name: iOS
-            target: test-ios
+            target: build/test-ios.xcresult
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +35,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Build and test
         run: swift test
+        shell: bash
+  Snippets:
+    name: Run snippets
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run snippets
+        run: make run-snippets
         shell: bash
   Linux:
     name: Test Linux

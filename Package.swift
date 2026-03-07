@@ -43,3 +43,7 @@ let package = Package(
         ),
     ]
 )
+
+if Context.environment["SQLYRA_DOCС_PLUGIN"] == "1" {
+    package.dependencies.append(.package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"))
+}

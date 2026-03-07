@@ -1,6 +1,8 @@
 import SQLite3
 
 /// SQLite database.
+///
+/// @Snippet(path: "SQLyra/Snippets/GettingStarted")
 public final class Database {
     /// Database open options.
     public struct OpenOptions: OptionSet, Sendable {
