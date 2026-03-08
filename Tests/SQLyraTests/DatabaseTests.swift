@@ -88,4 +88,44 @@ struct DatabaseTests {
         ]
         #expect(contacts == expected)
     }
+
+    struct ErrorCodes {
+
+        @Test func defaults() throws {
+            let database = try Database.open(at: ":memory:", options: [.readwrite, .memory])
+            try expect(errorCode: SQLITE_CONSTRAINT, database)
+        }
+
+        @Test func extendedResultCodeOption() throws {
+            let database = try Database.open(at: ":memory:", options: [.readwrite, .memory, .extendedResultCode])
+            try expect(errorCode: 1299, database)
+        }
+
+        @Test func setExtendedResultCodesEnabled() throws {
+            let database = try Database.open(at: ":memory:", options: [.readwrite, .memory])
+            database.setExtendedResultCodesEnabled(true)
+            try expect(errorCode: 1299, database)
+        }
+
+        @Test func setExtendedResultCodesDisabled() throws {
+            let database = try Database.open(at: ":memory:", options: [.readwrite, .memory, .extendedResultCode])
+            database.setExtendedResultCodesEnabled(false)
+            try expect(errorCode: SQLITE_CONSTRAINT, database)
+        }
+
+        private func expect(errorCode: Int32, _ database: Database) throws {
+            try database.execute("CREATE TABLE employees (id INT PRIMARY KEY NOT NULL, name TEXT);")
+
+            let error = #expect(throws: DatabaseError.self) {
+                try database.execute("INSERT INTO employees (name) VALUES ('John');")
+            }
+            #expect(error?.code == errorCode)
+            #expect(error?.codeDescription == "constraint failed")
+            #expect(error?.message == "NOT NULL constraint failed: employees.id")
+
+            #expect(database.errorCode == errorCode)
+            #expect(database.extendedErrorCode == 1299)  // SQLITE_CONSTRAINT_NOTNULL
+            #expect(database.errorMessage == "NOT NULL constraint failed: employees.id")
+        }
+    }
 }
