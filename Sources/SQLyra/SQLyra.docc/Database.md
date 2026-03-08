@@ -10,3 +10,10 @@
 
 - ``Database/execute(_:)``
 - ``Database/prepare(_:)``
+
+### Error Codes And Messages
+
+- ``Database/errorCode``
+- ``Database/extendedErrorCode``
+- ``Database/setExtendedResultCodesEnabled(_:)``
+- ``Database/errorMessage``

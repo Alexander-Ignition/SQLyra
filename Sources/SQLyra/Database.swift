@@ -5,6 +5,8 @@ import SQLite3
 /// @Snippet(path: "SQLyra/Snippets/GettingStarted")
 public final class Database {
     /// Database open options.
+    ///
+    /// SQLite C Interface [Flags For File Open Operations](https://www.sqlite.org/c3ref/c_open_autoproxy.html)
     public struct OpenOptions: OptionSet, Sendable {
         /// SQLite flags for opening a database connection.
         public let rawValue: Int32
@@ -36,6 +38,8 @@ public final class Database {
         public static let memory = OpenOptions(rawValue: SQLITE_OPEN_MEMORY)
 
         /// The database connection comes up in "extended result code mode".
+        ///
+        /// @Snippet(path: "SQLyra/Snippets/ErrorCodes")
         public static let extendedResultCode = OpenOptions(rawValue: SQLITE_OPEN_EXRESCODE)
 
         /// The filename can be interpreted as a URI if this flag is set.
@@ -93,6 +97,7 @@ public final class Database {
 
     /// Opening a new database connection.
     ///
+    /// SQLite C Interface [Opening A New Database Connection](https://www.sqlite.org/c3ref/open.html).
     /// - Parameters:
     ///   - filename: Relative or absolute path to the database file.
     ///   - options: The options parameter must include, at a minimum, one of the following three option combinations:
@@ -102,7 +107,8 @@ public final class Database {
     public static func open(at filename: String, options: OpenOptions = []) throws(DatabaseError) -> Database {
         let database = Database()
         let code = sqlite3_open_v2(filename, &database.db, options.rawValue, nil)
-        return try database.check(code)
+        try database.check(code)
+        return database
     }
 
     /// Use ``Database/open(at:options:)``.
@@ -136,5 +142,58 @@ public final class Database {
         var stmt: OpaquePointer!
         try check(sqlite3_prepare_v2(db, sql, -1, &stmt, nil))
         return PreparedStatement(stmt: stmt, database: self)
+    }
+
+    // MARK: - Error Codes And Messages
+
+    /// If the most recent `sqlite3_*` API call associated with database connection failed,
+    /// then the property returns the numeric result code or extended result code for that API call.
+    ///
+    /// SQLite C Interface
+    /// - [Result and Error Codes](https://www.sqlite.org/rescode.html)
+    /// - [Error Codes And Messages](https://www.sqlite.org/c3ref/errcode.html)
+    /// @Snippet(path: "SQLyra/Snippets/ErrorCodes")
+    public var errorCode: Int32 { sqlite3_errcode(db) }
+
+    /// Returns the extended result code even when extended result codes are disabled.
+    ///
+    /// SQLite C Interface
+    /// - [Result and Error Codes](https://www.sqlite.org/rescode.html)
+    /// - [Error Codes And Messages](https://www.sqlite.org/c3ref/errcode.html)
+    /// @Snippet(path: "SQLyra/Snippets/ErrorCodes")
+    public var extendedErrorCode: Int32 { sqlite3_extended_errcode(db) }
+
+    /// Enable or disable extended result codes.
+    ///
+    /// The extended result codes are disabled by default for historical compatibility.
+    ///
+    /// SQLite C Interface
+    /// - [Result and Error Codes](https://www.sqlite.org/rescode.html)
+    /// - [Error Codes And Messages](https://www.sqlite.org/c3ref/errcode.html)
+    /// - [Enable Or Disable Extended Result Codes](https://www.sqlite.org/c3ref/extended_result_codes.html)
+    /// @Snippet(path: "SQLyra/Snippets/ErrorCodes")
+    public func setExtendedResultCodesEnabled(_ onOff: Bool) {
+        sqlite3_extended_result_codes(db, onOff ? 1 : 0)
+    }
+
+    /// Return English-language text that describes the error, or NULL if no error message is available.
+    ///
+    /// The error string might be overwritten by subsequent calls to other SQLite interface functions.
+    ///
+    /// SQLite C Interface
+    /// - [Result and Error Codes](https://www.sqlite.org/rescode.html)
+    /// - [Error Codes And Messages](https://www.sqlite.org/c3ref/errcode.html)
+    /// @Snippet(path: "SQLyra/Snippets/ErrorCodes")
+    public var errorMessage: String? { sqlite3_errmsg(db).string }
+
+    func error(code: Int32) -> DatabaseError {
+        DatabaseError(code: code, message: errorMessage)
+    }
+
+    func check(_ code: Int32, _ success: Int32 = SQLITE_OK) throws(DatabaseError) {
+        guard code == success else {
+            throw error(code: code)
+        }
+        // success
     }
 }

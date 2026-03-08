@@ -11,7 +11,7 @@ import FoundationEssentials
 /// To execute an SQL statement, it must first be compiled into a byte-code program using one of these routines.
 /// Or, in other words, these routines are constructors for the prepared statement object.
 ///
-/// [Prepared Statement Object](https://www.sqlite.org/c3ref/stmt.html)
+/// SQLite C Interface [Prepared Statement Object](https://www.sqlite.org/c3ref/stmt.html)
 public final class PreparedStatement {
     let stmt: OpaquePointer
     let database: Database  // release database after all statements
@@ -69,7 +69,7 @@ public final class PreparedStatement {
 extension PreparedStatement {
     /// SQL text used to create prepared statement.
     ///
-    /// [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
+    /// SQLite C Interface [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
     /// @Snippet(path: "SQLyra/Snippets/RetrievingStatementSQL")
     public var sql: String { sqlite3_sql(stmt).string ?? "" }
 
@@ -79,7 +79,7 @@ extension PreparedStatement {
     /// The semantics used to normalize a SQL statement are unspecified and subject to change.
     /// At a minimum, literal values will be replaced with suitable placeholders.
     ///
-    /// [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
+    /// SQLite C Interface [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
     /// @Snippet(path: "SQLyra/Snippets/RetrievingStatementSQL")
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public var normalizedSQL: String { sqlite3_normalized_sql(stmt).string ?? "" }
@@ -87,7 +87,7 @@ extension PreparedStatement {
 
     /// SQL text of prepared statement with bound parameters expanded.
     ///
-    /// [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
+    /// SQLite C Interface [Retrieving statement SQL](https://www.sqlite.org/c3ref/expanded_sql.html)
     /// @Snippet(path: "SQLyra/Snippets/RetrievingStatementSQL")
     public var expandedSQL: String {
         guard let pointer = sqlite3_expanded_sql(stmt) else { return "" }
@@ -101,13 +101,13 @@ extension PreparedStatement {
 extension PreparedStatement {
     /// Number of SQL parameters.
     ///
-    /// [Number Of SQL Parameters](https://www.sqlite.org/c3ref/bind_parameter_count.html).
+    /// SQLite C Interface [Number Of SQL Parameters](https://www.sqlite.org/c3ref/bind_parameter_count.html).
     /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public var parameterCount: Int { Int(sqlite3_bind_parameter_count(stmt)) }
 
     /// Name of a SQL parameter.
     ///
-    /// [Name of a SQL parameter](https://www.sqlite.org/c3ref/bind_parameter_name.html).
+    /// SQLite C Interface [Name of a SQL parameter](https://www.sqlite.org/c3ref/bind_parameter_name.html).
     /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public func parameterName(at index: Int) -> String? {
         sqlite3_bind_parameter_name(stmt, Int32(index)).map { String(cString: $0) }
@@ -115,7 +115,7 @@ extension PreparedStatement {
 
     /// Index of a parameter with a given name
     ///
-    /// [Index of a parameter with a given name](https://www.sqlite.org/c3ref/bind_parameter_index.html).
+    /// SQLite C Interface [Index of a parameter with a given name](https://www.sqlite.org/c3ref/bind_parameter_index.html).
     /// @Snippet(path: "SQLyra/Snippets/SQLParameters")
     public func parameterIndex(for name: String) -> Int {
         Int(sqlite3_bind_parameter_index(stmt, name))
