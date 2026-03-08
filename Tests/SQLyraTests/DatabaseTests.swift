@@ -113,7 +113,7 @@ struct DatabaseTests {
             try expect(errorCode: SQLITE_CONSTRAINT, database)
         }
 
-        private func expect(errorCode: Int32, _ database: Database) throws  {
+        private func expect(errorCode: Int32, _ database: Database) throws {
             try database.execute("CREATE TABLE employees (id INT PRIMARY KEY NOT NULL, name TEXT);")
 
             let error = #expect(throws: DatabaseError.self) {

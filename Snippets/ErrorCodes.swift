@@ -5,7 +5,7 @@ let database = try Database.open(at: ":memory:", options: [.readwrite, .memory])
 try database.execute("CREATE TABLE employees (id INT PRIMARY KEY NOT NULL, name TEXT);")
 
 // snippet.show
-database.setExtendedResultCodesEnabled(true) // or `Database.OpenOptions.extendedResultCode`
+database.setExtendedResultCodesEnabled(true)  // or `Database.OpenOptions.extendedResultCode`
 
 let errorCode = 19  // SQLITE_CONSTRAINT
 let extendedErrorCode = 1299  // SQLITE_CONSTRAINT_NOTNULL
